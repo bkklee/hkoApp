@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { StyleSheet, View, Text, ScrollView, RefreshControl } from 'react-native';
 import * as Location from 'expo-location';
 import { fetchWeatherData, fetch9DayForecast, fetchRainfallNowcast, WeatherData, ForecastData, RainfallNowcast } from '../../services/weather';
@@ -15,8 +15,8 @@ export default function HomeScreen() {
   const [rainfall, setRainfall] = useState<RainfallNowcast[]>([]);
   const [isUserLocation, setIsUserLocation] = useState(false);
 
-  const [lastForecastUpdate, setLastForecastUpdate] = useState<number>(0);
-  const [lastConditionUpdate, setLastConditionUpdate] = useState<number>(0);
+  const lastForecastUpdateRef = useRef<number>(0);
+  const lastConditionUpdateRef = useRef<number>(0);
   const [cachedCondition, setCachedCondition] = useState<{condition: string, suggestUmbrellaLongTerm: boolean, longTermLabel: string}>({
     condition: '天晴',
     suggestUmbrellaLongTerm: false,
@@ -24,92 +24,132 @@ export default function HomeScreen() {
   });
 
   const loadWeather = useCallback(async (forceForecast = false) => {
-    try {
-      let { status } = await Location.requestForegroundPermissionsAsync();
-      let location: Location.LocationObject | null = null;
-      let nearestStation = STATIONS[0]; 
+    // Only show full-screen loading on initial load
+    if (!refreshing && !currentWeather) {
+      setLoading(true);
+    }
 
-      if (status === 'granted') {
-        location = await Location.getCurrentPositionAsync({});
-        if (location) {
-          setIsUserLocation(true);
-          let minDistance = Infinity;
-          STATIONS.forEach(station => {
-            const distance = Math.sqrt(
-              Math.pow(station.lat - location!.coords.latitude, 2) + 
-              Math.pow(station.lon - location!.coords.longitude, 2)
-            );
-            if (distance < minDistance) {
-              minDistance = distance;
-              nearestStation = station;
-            }
-          });
-        }
-      }
-
-      const now = Date.now();
-      
-      // Use functional updates or refs to avoid dependency on lastForecastUpdate/lastConditionUpdate
-      setLastForecastUpdate(prevForecastUpdate => {
-        const shouldUpdateForecast = forceForecast || (now - prevForecastUpdate > 60 * 60 * 1000);
-        
-        setLastConditionUpdate(prevConditionUpdate => {
-          const shouldUpdateCondition = forceForecast || (now - prevConditionUpdate > 30 * 60 * 1000);
-
-          // Perform data fetching
-          (async () => {
-            const [weatherRes, forecastRes, rainfallRes] = await Promise.all([
-              fetchWeatherData(),
-              shouldUpdateForecast ? fetch9DayForecast() : Promise.resolve(null),
-              location ? fetchRainfallNowcast(location.coords.latitude, location.coords.longitude) : fetchRainfallNowcast(nearestStation.lat, nearestStation.lon)
-            ]);
-
-            let { data: allWeatherData, condition, suggestUmbrellaLongTerm, longTermLabel } = weatherRes;
-            
-            if (!shouldUpdateCondition) {
-              setCachedCondition(prev => {
-                condition = prev.condition;
-                suggestUmbrellaLongTerm = prev.suggestUmbrellaLongTerm;
-                longTermLabel = prev.longTermLabel;
-                return prev;
-              });
-            } else {
-              setCachedCondition({ condition, suggestUmbrellaLongTerm, longTermLabel });
-              // We return 'now' later for condition update
-            }
-
-            if (forecastRes) {
-              setForecast(forecastRes);
-            }
-            
-            setRainfall(rainfallRes);
-            updateRainNotification(rainfallRes);
-
-            const matchedData = allWeatherData.find(d => d.station === nearestStation.name);
-            if (matchedData) {
-              setCurrentWeather({ ...matchedData, condition, suggestUmbrellaLongTerm, longTermLabel });
-            } else {
-              const hkoFallback = allWeatherData.find(d => d.station === '天文台');
-              if (hkoFallback) {
-                setCurrentWeather({ ...hkoFallback, condition, suggestUmbrellaLongTerm, longTermLabel });
-              }
-            }
-            setLoading(false);
-            setRefreshing(false);
-          })();
-
-          return shouldUpdateCondition ? now : prevConditionUpdate;
-        });
-
-        return shouldUpdateForecast ? now : prevForecastUpdate;
-      });
-
-    } catch (err: any) {
-      setError(err.message || 'An error occurred');
+    const safetyTimeout = setTimeout(() => {
       setLoading(false);
       setRefreshing(false);
+    }, 5000);
+
+    try {
+      const now = Date.now();
+      const shouldUpdateForecast = forceForecast || (now - lastForecastUpdateRef.current > 60 * 60 * 1000);
+      const shouldUpdateCondition = forceForecast || (now - lastConditionUpdateRef.current > 30 * 60 * 1000);
+
+      // --- PHASE 1: Fetch Weather Data IMMEDIATELY with default/fallback station ---
+      // We don't wait for GPS here to ensure near-instant loading
+      const [weatherRes, forecastRes] = await Promise.all([
+        fetchWeatherData().catch(() => null),
+        shouldUpdateForecast ? fetch9DayForecast().catch(() => null) : Promise.resolve(null),
+      ]);
+
+      if (!weatherRes) throw new Error('無法連線至天文台');
+
+      // Update state with weather data first
+      let { data: allWeatherData, condition, suggestUmbrellaLongTerm, longTermLabel } = weatherRes;
+      
+      if (shouldUpdateCondition) {
+        setCachedCondition({ condition, suggestUmbrellaLongTerm, longTermLabel });
+        lastConditionUpdateRef.current = now;
+      } else {
+        setCachedCondition(prev => {
+          condition = prev.condition;
+          suggestUmbrellaLongTerm = prev.suggestUmbrellaLongTerm;
+          longTermLabel = prev.longTermLabel;
+          return prev;
+        });
+      }
+
+      if (forecastRes) {
+        setForecast(forecastRes);
+        lastForecastUpdateRef.current = now;
+      }
+
+      // Initial render with default station while we wait for GPS
+      const defaultStation = STATIONS[0];
+      const initialMatchedData = allWeatherData.find(d => d.station === defaultStation.name) || allWeatherData[0];
+      setCurrentWeather({ ...initialMatchedData, condition, suggestUmbrellaLongTerm, longTermLabel });
+      
+      // We can stop initial loading now because we have data to show!
+      setLoading(false);
+      clearTimeout(safetyTimeout);
+
+      // --- PHASE 2: Background Location Fetching ---
+      // This happens while the user is already looking at the app
+      const fetchLocationAndRefine = async () => {
+        try {
+          const { status } = await Location.getForegroundPermissionsAsync();
+          if (status !== 'granted') {
+            const req = await Location.requestForegroundPermissionsAsync();
+            if (req.status !== 'granted') {
+              // No permission, just fetch rainfall for default station
+              const rain = await fetchRainfallNowcast(defaultStation.lat, defaultStation.lon).catch(() => []);
+              setRainfall(rain);
+              updateRainNotification(rain);
+              return;
+            }
+          }
+
+          // We wait only up to 2.5 seconds for GPS
+          const location = await Promise.race([
+            Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced }),
+            new Promise<null>((_, reject) => setTimeout(() => reject(new Error('GPS Timeout')), 2500))
+          ]);
+
+          let targetStation = defaultStation;
+          let targetLat = defaultStation.lat;
+          let targetLon = defaultStation.lon;
+
+          if (location) {
+            setIsUserLocation(true);
+            let minDistance = Infinity;
+            STATIONS.forEach(station => {
+              const distance = Math.sqrt(
+                Math.pow(station.lat - location.coords.latitude, 2) + 
+                Math.pow(station.lon - location.coords.longitude, 2)
+              );
+              if (distance < minDistance) {
+                minDistance = distance;
+                targetStation = station;
+                targetLat = location.coords.latitude;
+                targetLon = location.coords.longitude;
+              }
+            });
+
+            // Update with refined station data
+            const refinedMatchedData = allWeatherData.find(d => d.station === targetStation.name) || initialMatchedData;
+            setCurrentWeather({ ...refinedMatchedData, condition, suggestUmbrellaLongTerm, longTermLabel });
+          }
+
+          const rain = await fetchRainfallNowcast(targetLat, targetLon).catch(() => []);
+          setRainfall(rain);
+          updateRainNotification(rain);
+        } catch (e) {
+          console.log('Background location refinement skipped:', e);
+          // Still fetch rainfall for whatever we have
+          const rain = await fetchRainfallNowcast(defaultStation.lat, defaultStation.lon).catch(() => []);
+          setRainfall(rain);
+        } finally {
+          setRefreshing(false);
+        }
+      };
+
+      fetchLocationAndRefine();
+      setError(null);
+    } catch (err: any) {
+      console.error('loadWeather Error:', err);
+      setError('天氣更新失敗，請檢查網路。');
+      setLoading(false);
+      setRefreshing(false);
+      clearTimeout(safetyTimeout);
     }
-  }, []); // <-- Dependencies set to empty to keep identity stable
+  }, [refreshing]);
+ // Removed currentWeather dependency to prevent re-fetch loops
+ // Stable but aware of initial state
+ // <-- Dependencies set to empty to keep identity stable
 
   useEffect(() => {
     loadWeather(true);
