@@ -52,12 +52,15 @@ export async function updateRainNotification(rainfall: { amount: number, endTime
 
   // Only send if the message has changed to avoid bothering the user
   if (body !== lastNotificationBody) {
+    const isNewAlert = lastNotificationBody === '';
+
     await Notifications.scheduleNotificationAsync({
       identifier: 'rain-alert', // Use a fixed ID to replace previous notification
       content: {
         title,
         body,
-        priority: Notifications.AndroidNotificationPriority.HIGH,
+        priority: isNewAlert ? Notifications.AndroidNotificationPriority.HIGH : Notifications.AndroidNotificationPriority.DEFAULT,
+        sound: isNewAlert, // Only play sound/vibrate if it's a completely new alert
         sticky: true,
       },
       trigger: null,

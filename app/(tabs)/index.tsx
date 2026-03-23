@@ -16,6 +16,12 @@ export default function HomeScreen() {
   const [isUserLocation, setIsUserLocation] = useState(false);
 
   const [lastForecastUpdate, setLastForecastUpdate] = useState<number>(0);
+  const [lastConditionUpdate, setLastConditionUpdate] = useState<number>(0);
+  const [cachedCondition, setCachedCondition] = useState<{condition: string, suggestUmbrellaLongTerm: boolean, longTermLabel: string}>({
+    condition: '天晴',
+    suggestUmbrellaLongTerm: false,
+    longTermLabel: '今日'
+  });
 
   const loadWeather = useCallback(async (forceForecast = false) => {
     try {
@@ -42,45 +48,68 @@ export default function HomeScreen() {
       }
 
       const now = Date.now();
-      const shouldUpdateForecast = forceForecast || (now - lastForecastUpdate > 60 * 60 * 1000);
-
-      const [weatherRes, forecastRes, rainfallRes] = await Promise.all([
-        fetchWeatherData(),
-        shouldUpdateForecast ? fetch9DayForecast() : Promise.resolve(null),
-        location ? fetchRainfallNowcast(location.coords.latitude, location.coords.longitude) : fetchRainfallNowcast(nearestStation.lat, nearestStation.lon)
-      ]);
-
-      const { data: allWeatherData, condition, suggestUmbrellaLongTerm, longTermLabel } = weatherRes;
       
-      if (forecastRes) {
-        setForecast(forecastRes);
-        setLastForecastUpdate(now);
-      }
-      
-      setRainfall(rainfallRes);
-      updateRainNotification(rainfallRes);
+      // Use functional updates or refs to avoid dependency on lastForecastUpdate/lastConditionUpdate
+      setLastForecastUpdate(prevForecastUpdate => {
+        const shouldUpdateForecast = forceForecast || (now - prevForecastUpdate > 60 * 60 * 1000);
+        
+        setLastConditionUpdate(prevConditionUpdate => {
+          const shouldUpdateCondition = forceForecast || (now - prevConditionUpdate > 30 * 60 * 1000);
 
-      const matchedData = allWeatherData.find(d => d.station === nearestStation.name);
+          // Perform data fetching
+          (async () => {
+            const [weatherRes, forecastRes, rainfallRes] = await Promise.all([
+              fetchWeatherData(),
+              shouldUpdateForecast ? fetch9DayForecast() : Promise.resolve(null),
+              location ? fetchRainfallNowcast(location.coords.latitude, location.coords.longitude) : fetchRainfallNowcast(nearestStation.lat, nearestStation.lon)
+            ]);
 
-      if (matchedData) {
-        setCurrentWeather({ ...matchedData, condition, suggestUmbrellaLongTerm, longTermLabel });
-      } else {
-        const hkoFallback = allWeatherData.find(d => d.station === '天文台');
-        if (hkoFallback) {
-          setCurrentWeather({ ...hkoFallback, condition, suggestUmbrellaLongTerm, longTermLabel });
-        } else if (allWeatherData.length > 0) {
-          setCurrentWeather({ ...allWeatherData[0], condition, suggestUmbrellaLongTerm, longTermLabel });
-        } else {
-          setError('Could not find weather data');
-        }
-      }
+            let { data: allWeatherData, condition, suggestUmbrellaLongTerm, longTermLabel } = weatherRes;
+            
+            if (!shouldUpdateCondition) {
+              setCachedCondition(prev => {
+                condition = prev.condition;
+                suggestUmbrellaLongTerm = prev.suggestUmbrellaLongTerm;
+                longTermLabel = prev.longTermLabel;
+                return prev;
+              });
+            } else {
+              setCachedCondition({ condition, suggestUmbrellaLongTerm, longTermLabel });
+              // We return 'now' later for condition update
+            }
+
+            if (forecastRes) {
+              setForecast(forecastRes);
+            }
+            
+            setRainfall(rainfallRes);
+            updateRainNotification(rainfallRes);
+
+            const matchedData = allWeatherData.find(d => d.station === nearestStation.name);
+            if (matchedData) {
+              setCurrentWeather({ ...matchedData, condition, suggestUmbrellaLongTerm, longTermLabel });
+            } else {
+              const hkoFallback = allWeatherData.find(d => d.station === '天文台');
+              if (hkoFallback) {
+                setCurrentWeather({ ...hkoFallback, condition, suggestUmbrellaLongTerm, longTermLabel });
+              }
+            }
+            setLoading(false);
+            setRefreshing(false);
+          })();
+
+          return shouldUpdateCondition ? now : prevConditionUpdate;
+        });
+
+        return shouldUpdateForecast ? now : prevForecastUpdate;
+      });
+
     } catch (err: any) {
       setError(err.message || 'An error occurred');
-    } finally {
       setLoading(false);
       setRefreshing(false);
     }
-  }, [lastForecastUpdate]);
+  }, []); // <-- Dependencies set to empty to keep identity stable
 
   useEffect(() => {
     loadWeather(true);
