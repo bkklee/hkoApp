@@ -17,6 +17,9 @@
     }
   },
   "submit": {
-    "production": {}
+    "production": {
+      "ascAppId": "6760688701",
+      "appleId": "1b12leekakit@gmail.com"
+    }
   }
 }
