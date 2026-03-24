@@ -1,12 +1,13 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
-import { StyleSheet, View, Text, ScrollView, RefreshControl } from 'react-native';
+import { StyleSheet, View, Text, ScrollView, RefreshControl, TouchableOpacity } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import * as TaskManager from 'expo-task-manager';
 import * as Location from 'expo-location';
 import { fetchWeatherData, fetch9DayForecast, fetchRainfallNowcast, WeatherData, ForecastData, RainfallNowcast } from '../../services/weather';
 import { updateRainNotification } from '../../services/notifications';
 import { WeatherDisplay } from '../../components/WeatherDisplay';
 import { STATIONS } from '../../constants/stations';
-import { LAST_BG_SYNC_KEY } from '../../services/background';
+import { BACKGROUND_RAIN_TASK, LAST_BG_SYNC_KEY } from '../../services/background';
 
 export default function HomeScreen() {
   const [loading, setLoading] = useState(true);
@@ -18,8 +19,10 @@ export default function HomeScreen() {
   const [isUserLocation, setIsUserLocation] = useState(false);
   const [lastBgSync, setLastBgSync] = useState<string | null>(null);
 
+  const lastTargetStationRef = useRef<string | null>(null);
   const lastForecastUpdateRef = useRef<number>(0);
   const lastConditionUpdateRef = useRef<number>(0);
+  
   const [cachedCondition, setCachedCondition] = useState<{condition: string, suggestUmbrellaLongTerm: boolean, longTermLabel: string}>({
     condition: '天晴',
     suggestUmbrellaLongTerm: false,
@@ -72,8 +75,12 @@ export default function HomeScreen() {
         lastForecastUpdateRef.current = now;
       }
 
+      // --- IMPROVED STATION MATCHING ---
+      // Use the last known station if we already have one to avoid flickering back to HKO
       const defaultStation = STATIONS[0];
-      const initialMatchedData = allWeatherData.find(d => d.station === defaultStation.name) || allWeatherData[0];
+      const targetStationName = lastTargetStationRef.current || defaultStation.name;
+      const initialMatchedData = allWeatherData.find(d => d.station === targetStationName) || allWeatherData[0];
+      
       setCurrentWeather({ ...initialMatchedData, condition, suggestUmbrellaLongTerm, longTermLabel });
       
       setLoading(false);
@@ -87,7 +94,6 @@ export default function HomeScreen() {
             if (req.status !== 'granted') {
               const rain = await fetchRainfallNowcast(defaultStation.lat, defaultStation.lon).catch(() => []);
               setRainfall(rain);
-              updateRainNotification(rain);
               return;
             }
           }
@@ -97,9 +103,9 @@ export default function HomeScreen() {
             new Promise<null>((_, reject) => setTimeout(() => reject(new Error('GPS Timeout')), 2500))
           ]);
 
-          let targetStation = defaultStation;
-          let targetLat = defaultStation.lat;
-          let targetLon = defaultStation.lon;
+          let targetStation = STATIONS.find(s => s.name === targetStationName) || defaultStation;
+          let targetLat = targetStation.lat;
+          let targetLon = targetStation.lon;
 
           if (location) {
             setIsUserLocation(true);
@@ -117,13 +123,14 @@ export default function HomeScreen() {
               }
             });
 
+            lastTargetStationRef.current = targetStation.name;
             const refinedMatchedData = allWeatherData.find(d => d.station === targetStation.name) || initialMatchedData;
             setCurrentWeather({ ...refinedMatchedData, condition, suggestUmbrellaLongTerm, longTermLabel });
           }
 
           const rain = await fetchRainfallNowcast(targetLat, targetLon).catch(() => []);
           setRainfall(rain);
-          updateRainNotification(rain);
+          // In foreground, we don't necessarily need to trigger notification every 5 mins unless there's a big change
         } catch (e) {
           console.log('Background location refinement skipped:', e);
           const rain = await fetchRainfallNowcast(defaultStation.lat, defaultStation.lon).catch(() => []);
@@ -142,15 +149,12 @@ export default function HomeScreen() {
       setRefreshing(false);
       clearTimeout(safetyTimeout);
     }
-  }, [refreshing, currentWeather]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [refreshing]);
 
   useEffect(() => {
     loadWeather(true);
-    
-    const intervalId = setInterval(() => {
-      loadWeather(false);
-    }, 5 * 60 * 1000);
-
+    const intervalId = setInterval(() => loadWeather(false), 5 * 60 * 1000);
     return () => clearInterval(intervalId);
   }, [loadWeather]);
 
@@ -204,26 +208,9 @@ export default function HomeScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#000',
-  },
-  debugInfo: {
-    backgroundColor: '#111',
-    padding: 6,
-    alignItems: 'center',
-  },
-  debugText: {
-    color: '#666',
-    fontSize: 10,
-  },
-  center: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: '#000',
-  },
-  text: {
-    color: '#FFF',
-  },
+  container: { flex: 1, backgroundColor: '#000' },
+  debugInfo: { backgroundColor: '#111', padding: 6, alignItems: 'center' },
+  debugText: { color: '#666', fontSize: 10 },
+  center: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#000' },
+  text: { color: '#FFF' },
 });

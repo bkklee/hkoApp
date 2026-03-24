@@ -201,7 +201,7 @@ export async function fetchRainfallNowcast(userLat: number, userLon: number): Pr
     const response = await fetch(NOWCAST_API_URL(userLat, userLon));
     
     if (!response.ok) {
-      console.warn(`Nowcast API returned ${response.status}, falling back to HKO...`);
+      // API is down or returned 500, fallback silently to HKO data
       return fetchHKORainfallFallback(userLat, userLon);
     }
 
