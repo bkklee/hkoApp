@@ -4,17 +4,10 @@ on:
 
 jobs:
   upload:
-    runs-on: macos-15 # 使用 macOS 15 鏡像
+    runs-on: macos-latest
     steps:
       - name: 🏗 Checkout repository
         uses: actions/checkout@v4
-
-      - name: 🍏 Setup Xcode Version
-        # 使用 Xcode 16.1 以確保 SDK 完整性，並符合 React Native >= 16.1 要求
-        run: |
-          sudo xcode-select -s /Applications/Xcode_16.1.app/Contents/Developer
-          xcodebuild -version
-          echo "DEVELOPER_DIR=/Applications/Xcode_16.1.app/Contents/Developer" >> $GITHUB_ENV
 
       - name: 🍏 Setup Node
         uses: actions/setup-node@v4
@@ -34,10 +27,7 @@ jobs:
           npm install
 
       - name: 🛠 Build Production IPA (Local)
-        # 傳入 DEVELOPER_DIR 環境變數，確保內部的 pod install 使用正確版本
         run: npx eas build --platform ios --profile production --local --non-interactive --output=./rainy-hk-prod.ipa
-        env:
-          DEVELOPER_DIR: /Applications/Xcode_16.1.app/Contents/Developer
 
       - name: 📤 Submit to App Store Connect
         run: npx eas submit --platform ios --profile production --path ./rainy-hk-prod.ipa --non-interactive
