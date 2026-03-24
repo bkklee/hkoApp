@@ -12,18 +12,15 @@ export const LAST_BG_SYNC_KEY = 'last-background-sync';
 // Define the background task
 TaskManager.defineTask(BACKGROUND_RAIN_TASK, async ({ data, error }) => {
   const nowStr = new Date().toLocaleTimeString();
-  console.log(`[${nowStr}] Background rain check started.`);
-
+  
   if (error) {
     console.error('Background task error:', error);
     return BackgroundTask.BackgroundTaskResult.Failed;
   }
 
   try {
-    // Save last sync time for UI visibility
     await AsyncStorage.setItem(LAST_BG_SYNC_KEY, nowStr);
 
-    // 1. Get current location
     let latitude: number | undefined;
     let longitude: number | undefined;
 
@@ -43,12 +40,9 @@ TaskManager.defineTask(BACKGROUND_RAIN_TASK, async ({ data, error }) => {
         longitude = currentPosition.coords.longitude;
     }
 
-    console.log(`[${nowStr}] Checking real rain for: ${latitude}, ${longitude}`);
+    console.log(`[${nowStr}] BG EXECUTION: Rain check for ${latitude.toFixed(3)}, ${longitude.toFixed(3)}`);
 
-    // 2. Fetch REAL latest rain data
     const rainData = await fetchRainfallNowcast(latitude, longitude);
-    
-    // 3. Trigger notification
     await updateRainNotification(rainData);
     
     return BackgroundTask.BackgroundTaskResult.Success;
@@ -63,16 +57,15 @@ TaskManager.defineTask(BACKGROUND_RAIN_TASK, async ({ data, error }) => {
  */
 export async function startBackgroundTracker() {
   try {
-    const isAvailable = await TaskManager.isAvailableAsync();
-    
-    // 1. Request Notification Permissions
+    const isTaskRegistered = await TaskManager.isTaskRegisteredAsync(BACKGROUND_RAIN_TASK);
+    console.log(`Initial Status: Task registered = ${isTaskRegistered}`);
+
+    // Always request permissions first
     await requestNotificationPermissions();
 
-    // 2. Request Foreground Location Permissions
     const { status: foregroundStatus } = await Location.requestForegroundPermissionsAsync();
     if (foregroundStatus !== 'granted') return false;
 
-    // 3. Request Background Location Permissions
     const { status: backgroundStatus } = await Location.requestBackgroundPermissionsAsync();
     if (backgroundStatus !== 'granted') {
       Alert.alert(
@@ -86,22 +79,28 @@ export async function startBackgroundTracker() {
       return false;
     }
 
-    // Register Background Task (15 mins)
-    // NOTE: For expo-background-task, the unit is MINUTES.
+    // 1. Register Background Fetch Task (Periodic)
     await BackgroundTask.registerTaskAsync(BACKGROUND_RAIN_TASK, {
-        minimumInterval: 15, 
+        minimumInterval: 15, // 15 minutes
     });
 
-    // Register Location Updates (2km)
+    // 2. Register Location Updates (Persistent)
+    // Using showsBackgroundLocationIndicator to prevent iOS from killing the process
     await Location.startLocationUpdatesAsync(BACKGROUND_RAIN_TASK, {
       accuracy: Location.Accuracy.Balanced,
       timeInterval: 15 * 60 * 1000, 
       distanceInterval: 2000, 
-      showsBackgroundLocationIndicator: false,
+      showsBackgroundLocationIndicator: true, // Crucial for persistent iOS backgrounding
       pausesUpdatesAutomatically: false,
+      activityType: Location.ActivityType.OtherNavigation,
+      foregroundService: {
+        notificationTitle: "Rainy HK 降雨監測中",
+        notificationBody: "正在背景為您追蹤即時雨雲動向",
+        notificationColor: "#4dabf7"
+      },
     });
 
-    console.log('Background tracker fully active.');
+    console.log('--- BACKGROUND TRACKER FULLY ACTIVATED ---');
     return true;
   } catch (error) {
     console.error('Failed to start background tracker:', error);
@@ -113,6 +112,8 @@ export async function stopBackgroundTracker() {
     const isStarted = await Location.hasStartedLocationUpdatesAsync(BACKGROUND_RAIN_TASK);
     if (isStarted) await Location.stopLocationUpdatesAsync(BACKGROUND_RAIN_TASK);
     
-    const isTaskRegistered = await TaskManager.isTaskRegisteredAsync(BACKGROUND_RAIN_TASK);
-    if (isTaskRegistered) await BackgroundTask.unregisterTaskAsync(BACKGROUND_RAIN_TASK);
+    const isRegistered = await TaskManager.isTaskRegisteredAsync(BACKGROUND_RAIN_TASK);
+    if (isRegistered) await BackgroundTask.unregisterTaskAsync(BACKGROUND_RAIN_TASK);
+    
+    console.log('Background tracker stopped');
 }
