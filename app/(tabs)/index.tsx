@@ -27,13 +27,11 @@ export default function HomeScreen() {
   });
 
   const loadWeather = useCallback(async (forceForecast = false) => {
-    // Check background sync
     try {
       const stored = await AsyncStorage.getItem(LAST_BG_SYNC_KEY);
       if (stored) setLastBgSync(stored);
     } catch (e) {}
 
-    // Only show full-screen loading on initial load
     if (!refreshing && !currentWeather) {
       setLoading(true);
     }
@@ -48,8 +46,6 @@ export default function HomeScreen() {
       const shouldUpdateForecast = forceForecast || (now - lastForecastUpdateRef.current > 60 * 60 * 1000);
       const shouldUpdateCondition = forceForecast || (now - lastConditionUpdateRef.current > 30 * 60 * 1000);
 
-      // --- PHASE 1: Fetch Weather Data IMMEDIATELY with default/fallback station ---
-      // We don't wait for GPS here to ensure near-instant loading
       const [weatherRes, forecastRes] = await Promise.all([
         fetchWeatherData().catch(() => null),
         shouldUpdateForecast ? fetch9DayForecast().catch(() => null) : Promise.resolve(null),
@@ -57,7 +53,6 @@ export default function HomeScreen() {
 
       if (!weatherRes) throw new Error('無法連線至天文台');
 
-      // Update state with weather data first
       let { data: allWeatherData, condition, suggestUmbrellaLongTerm, longTermLabel } = weatherRes;
       
       if (shouldUpdateCondition) {
@@ -77,24 +72,19 @@ export default function HomeScreen() {
         lastForecastUpdateRef.current = now;
       }
 
-      // Initial render with default station while we wait for GPS
       const defaultStation = STATIONS[0];
       const initialMatchedData = allWeatherData.find(d => d.station === defaultStation.name) || allWeatherData[0];
       setCurrentWeather({ ...initialMatchedData, condition, suggestUmbrellaLongTerm, longTermLabel });
       
-      // We can stop initial loading now because we have data to show!
       setLoading(false);
       clearTimeout(safetyTimeout);
 
-      // --- PHASE 2: Background Location Fetching ---
-      // This happens while the user is already looking at the app
       const fetchLocationAndRefine = async () => {
         try {
           const { status } = await Location.getForegroundPermissionsAsync();
           if (status !== 'granted') {
             const req = await Location.requestForegroundPermissionsAsync();
             if (req.status !== 'granted') {
-              // No permission, just fetch rainfall for default station
               const rain = await fetchRainfallNowcast(defaultStation.lat, defaultStation.lon).catch(() => []);
               setRainfall(rain);
               updateRainNotification(rain);
@@ -102,7 +92,6 @@ export default function HomeScreen() {
             }
           }
 
-          // We wait only up to 2.5 seconds for GPS
           const location = await Promise.race([
             Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced }),
             new Promise<null>((_, reject) => setTimeout(() => reject(new Error('GPS Timeout')), 2500))
@@ -128,7 +117,6 @@ export default function HomeScreen() {
               }
             });
 
-            // Update with refined station data
             const refinedMatchedData = allWeatherData.find(d => d.station === targetStation.name) || initialMatchedData;
             setCurrentWeather({ ...refinedMatchedData, condition, suggestUmbrellaLongTerm, longTermLabel });
           }
@@ -138,7 +126,6 @@ export default function HomeScreen() {
           updateRainNotification(rain);
         } catch (e) {
           console.log('Background location refinement skipped:', e);
-          // Still fetch rainfall for whatever we have
           const rain = await fetchRainfallNowcast(defaultStation.lat, defaultStation.lon).catch(() => []);
           setRainfall(rain);
         } finally {
@@ -155,15 +142,11 @@ export default function HomeScreen() {
       setRefreshing(false);
       clearTimeout(safetyTimeout);
     }
-  }, [refreshing]);
- // Removed currentWeather dependency to prevent re-fetch loops
- // Stable but aware of initial state
- // <-- Dependencies set to empty to keep identity stable
+  }, [refreshing, currentWeather]);
 
   useEffect(() => {
     loadWeather(true);
     
-    // Auto-refresh weather every 5 minutes
     const intervalId = setInterval(() => {
       loadWeather(false);
     }, 5 * 60 * 1000);

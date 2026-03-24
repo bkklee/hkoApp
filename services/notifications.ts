@@ -11,6 +11,15 @@ export async function requestNotificationPermissions() {
   return finalStatus === 'granted';
 }
 
+// Set up default notification handler
+Notifications.setNotificationHandler({
+  handleNotification: async () => ({
+    shouldShowAlert: true,
+    shouldPlaySound: true,
+    shouldSetBadge: false,
+  }),
+});
+
 let lastNotificationBody = '';
 
 export async function updateRainNotification(rainfall: { amount: number, endTime: string }[]) {
@@ -23,7 +32,6 @@ export async function updateRainNotification(rainfall: { amount: number, endTime
   let body = '';
 
   if (currentRain >= 0.05) {
-    // Currently Raining: Find when it might stop
     const firstDryIndex = rainfall.findIndex(r => r.amount < 0.05);
     if (firstDryIndex !== -1) {
       const stopTime = rainfall[firstDryIndex].endTime;
@@ -35,7 +43,6 @@ export async function updateRainNotification(rainfall: { amount: number, endTime
       body = '未來兩小時預計持續有雨，請備雨具。';
     }
   } else if (anyRainLater) {
-    // Not raining now, but rain is coming
     const firstRainIndex = rainfall.findIndex(r => r.amount >= 0.05);
     const startTime = rainfall[firstRainIndex].endTime;
     const formattedStartTime = `${startTime.slice(8, 10)}:${startTime.slice(10, 12)}`;
@@ -44,7 +51,6 @@ export async function updateRainNotification(rainfall: { amount: number, endTime
     title = '☁️ 降雨預警';
     body = `預計 ${formattedStartTime} 左右開始降雨 (約 ${rainAmount.toFixed(1)}mm)。`;
   } else {
-    // No rain expected: Clear existing notifications
     await Notifications.dismissNotificationAsync('rain-alert');
     lastNotificationBody = '';
     return;
@@ -52,19 +58,21 @@ export async function updateRainNotification(rainfall: { amount: number, endTime
 
   // Only send if the message has changed to avoid bothering the user
   if (body !== lastNotificationBody) {
-    const isNewAlert = lastNotificationBody === '';
-
-    await Notifications.scheduleNotificationAsync({
-      identifier: 'rain-alert', // Use a fixed ID to replace previous notification
-      content: {
-        title,
-        body,
-        priority: isNewAlert ? Notifications.AndroidNotificationPriority.HIGH : Notifications.AndroidNotificationPriority.DEFAULT,
-        sound: isNewAlert, // Only play sound/vibrate if it's a completely new alert
-        sticky: true,
-      },
-      trigger: null,
-    });
-    lastNotificationBody = body;
+    try {
+      await Notifications.scheduleNotificationAsync({
+        identifier: 'rain-alert',
+        content: {
+          title,
+          body,
+          priority: Notifications.AndroidNotificationPriority.HIGH,
+          sound: true,
+          sticky: true,
+        },
+        trigger: null,
+      });
+      lastNotificationBody = body;
+    } catch (e) {
+      console.error('Failed to schedule notification:', e);
+    }
   }
 }
