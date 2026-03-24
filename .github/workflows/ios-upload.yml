@@ -1,0 +1,37 @@
+name: Upload iOS to App Store
+on:
+  workflow_dispatch: # 手動觸發
+
+jobs:
+  upload:
+    runs-on: macos-latest
+    steps:
+      - name: 🏗 Checkout repository
+        uses: actions/checkout@v4
+
+      - name: 🍏 Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+
+      - name: 🚀 Setup Expo and EAS
+        uses: expo/expo-github-action@v8
+        with:
+          expo-version: latest
+          token: ${{ secrets.EXPO_TOKEN }}
+
+      - name: 📦 Install EAS CLI and Dependencies
+        run: |
+          npm install -g eas-cli
+          npm install
+
+      - name: 🛠 Build Production IPA (Local)
+        # 使用 --local 確保不消耗 Expo 編譯額度
+        run: npx eas build --platform ios --profile production --local --non-interactive --output=./rainy-hk-prod.ipa
+
+      - name: 📤 Submit to App Store Connect
+        # eas submit 不消耗編譯額度
+        run: npx eas submit --platform ios --profile production --path ./rainy-hk-prod.ipa --non-interactive
+        env:
+          EXPO_APPLE_APP_SPECIFIC_PASSWORD: ${{ secrets.EXPO_APPLE_APP_SPECIFIC_PASSWORD }}
