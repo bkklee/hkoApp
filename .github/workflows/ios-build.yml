@@ -1,0 +1,38 @@
+name: Build iOS Development Client
+on:
+  workflow_dispatch: # 允許手動點擊按鈕觸發構建
+
+jobs:
+  build:
+    runs-on: macos-latest # 使用 GitHub 的 Mac 伺服器
+    steps:
+      - name: 🏗 Checkout repository
+        uses: actions/checkout@v4
+
+      - name: 🍏 Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 18
+          cache: 'npm'
+
+      - name: 🚀 Setup Expo
+        uses: expo/expo-github-action@v8
+        with:
+          expo-version: latest
+          eas-cache: true
+          token: ${{ secrets.EXPO_TOKEN }}
+
+      - name: 📦 Install dependencies
+        run: npm install
+
+      - name: 🛠 Build iOS local
+        # --local 讓它在 GitHub 的 Mac 上跑，不扣 EAS 額度
+        # --non-interactive 確保不會卡在詢問介面
+        # --output 指定產出路徑
+        run: eas build --platform ios --profile development --local --non-interactive --output=./rainy-hk-dev.ipa
+
+      - name: 📤 Upload Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ios-dev-build
+          path: ./rainy-hk-dev.ipa

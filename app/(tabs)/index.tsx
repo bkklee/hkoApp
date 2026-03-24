@@ -1,10 +1,12 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { StyleSheet, View, Text, ScrollView, RefreshControl } from 'react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as Location from 'expo-location';
 import { fetchWeatherData, fetch9DayForecast, fetchRainfallNowcast, WeatherData, ForecastData, RainfallNowcast } from '../../services/weather';
 import { updateRainNotification } from '../../services/notifications';
 import { WeatherDisplay } from '../../components/WeatherDisplay';
 import { STATIONS } from '../../constants/stations';
+import { LAST_BG_SYNC_KEY } from '../../services/background';
 
 export default function HomeScreen() {
   const [loading, setLoading] = useState(true);
@@ -14,6 +16,7 @@ export default function HomeScreen() {
   const [forecast, setForecast] = useState<ForecastData[]>([]);
   const [rainfall, setRainfall] = useState<RainfallNowcast[]>([]);
   const [isUserLocation, setIsUserLocation] = useState(false);
+  const [lastBgSync, setLastBgSync] = useState<string | null>(null);
 
   const lastForecastUpdateRef = useRef<number>(0);
   const lastConditionUpdateRef = useRef<number>(0);
@@ -24,6 +27,12 @@ export default function HomeScreen() {
   });
 
   const loadWeather = useCallback(async (forceForecast = false) => {
+    // Check background sync
+    try {
+      const stored = await AsyncStorage.getItem(LAST_BG_SYNC_KEY);
+      if (stored) setLastBgSync(stored);
+    } catch (e) {}
+
     // Only show full-screen loading on initial load
     if (!refreshing && !currentWeather) {
       setLoading(true);
@@ -189,6 +198,11 @@ export default function HomeScreen() {
       contentContainerStyle={{ flexGrow: 1 }}
       refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#FFF" />}
     >
+      {lastBgSync && (
+        <View style={styles.debugInfo}>
+          <Text style={styles.debugText}>背景監測中: 最後執行於 {lastBgSync}</Text>
+        </View>
+      )}
       {currentWeather && (
         <WeatherDisplay 
           station={currentWeather.station}
@@ -210,6 +224,15 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#000',
+  },
+  debugInfo: {
+    backgroundColor: '#111',
+    padding: 6,
+    alignItems: 'center',
+  },
+  debugText: {
+    color: '#666',
+    fontSize: 10,
   },
   center: {
     flex: 1,
