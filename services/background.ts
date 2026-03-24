@@ -11,7 +11,7 @@ export const LAST_BG_SYNC_KEY = 'last-background-sync';
 // Define the background task
 TaskManager.defineTask(BACKGROUND_RAIN_TASK, async ({ data, error }) => {
   const now = new Date().toLocaleTimeString();
-  console.log(`[${now}] Background task triggered!`);
+  console.log(`[${now}] Background task triggered (MOCK MODE)!`);
 
   if (error) {
     console.error('Background task error:', error);
@@ -19,40 +19,35 @@ TaskManager.defineTask(BACKGROUND_RAIN_TASK, async ({ data, error }) => {
   }
 
   try {
-    // 1. Get current location
-    let latitude: number | undefined;
-    let longitude: number | undefined;
+    // 1. Get current location (even if mock, we need coordinates for the API call log)
+    let latitude: number = 22.3; 
+    let longitude: number = 114.1;
 
     if (data && typeof data === 'object' && 'locations' in (data as any)) {
         const locations = (data as any).locations as Location.LocationObject[];
         if (locations.length > 0) {
             latitude = locations[0].coords.latitude;
             longitude = locations[0].coords.longitude;
-            console.log('Location trigger data found.');
         }
     }
 
-    if (latitude === undefined || longitude === undefined) {
-        console.log('No location data in trigger, fetching current position...');
-        const currentPosition = await Location.getCurrentPositionAsync({
-            accuracy: Location.Accuracy.Balanced,
-        });
-        latitude = currentPosition.coords.latitude;
-        longitude = currentPosition.coords.longitude;
-    }
+    console.log(`[${now}] Running MOCK rain check for: ${latitude}, ${longitude}`);
 
-    console.log(`[${now}] Checking rain for: ${latitude}, ${longitude}`);
+    // --- MOCK RAIN DATA FOR TESTING ---
+    // Instead of real fetching, we inject a heavy rain scenario
+    const mockRainData = [
+      { amount: 8.5, updateTime: '202603241400', endTime: '202603241430' },
+      { amount: 12.0, updateTime: '202603241400', endTime: '202603241500' }
+    ];
+    
+    console.log(`[${now}] Injecting MOCK rain: ${mockRainData[0].amount}mm`);
 
-    // 2. Fetch latest rain data
-    const rainData = await fetchRainfallNowcast(latitude, longitude);
-    console.log(`[${now}] Rain data fetched, amount: ${rainData[0]?.amount}`);
-
-    // 3. Trigger notification
-    await updateRainNotification(rainData);
+    // 2. Trigger notification with mock data
+    await updateRainNotification(mockRainData);
     
     return BackgroundTask.BackgroundTaskResult.Success;
   } catch (err) {
-    console.error('Error in background rain task:', err);
+    console.error('Error in mock background rain task:', err);
     return BackgroundTask.BackgroundTaskResult.Failed;
   }
 });
@@ -64,10 +59,6 @@ export async function startBackgroundTracker() {
   try {
     const isAvailable = await TaskManager.isAvailableAsync();
     console.log('TaskManager Available:', isAvailable);
-
-    if (!isAvailable) {
-      console.warn('TaskManager is not available on this device. Check low power mode or background refresh settings.');
-    }
 
     // 1. Request Notification Permissions
     await requestNotificationPermissions();
@@ -104,16 +95,17 @@ export async function startBackgroundTracker() {
       return false;
     }
 
-    // Register Background Task (Periodic updates)
+    // Register Background Task (Periodic updates - back to 15 mins for stability)
     await BackgroundTask.registerTaskAsync(BACKGROUND_RAIN_TASK, {
-        minimumInterval: 5 * 60, // 5 minutes (Note: OS may still limit to 15 mins)
+        minimumInterval: 15 * 60, 
     });
 
-    // Also register Location Updates (Movement-based updates)
+    // Also register Location Updates (Movement-based updates - back to 2km)
     await Location.startLocationUpdatesAsync(BACKGROUND_RAIN_TASK, {
-      accuracy: Location.Accuracy.High, // Use High accuracy to encourage OS wakeup
-      timeInterval: 5 * 60 * 1000, // 5 minutes
-      distanceInterval: 500, // Trigger every 500m (more aggressive)
+      accuracy: Location.Accuracy.Balanced,
+      timeInterval: 15 * 60 * 1000, 
+      distanceInterval: 2000, 
+      showsBackgroundLocationIndicator: false, // Back to subtle mode
       foregroundService: {
         notificationTitle: "Rainy HK 降雨監測中",
         notificationBody: "正在背景為您追蹤即時雨雲動向",
@@ -122,7 +114,7 @@ export async function startBackgroundTracker() {
       pausesUpdatesAutomatically: false,
     });
 
-    console.log('Background tracker started successfully');
+    console.log('Background tracker started successfully (MOCK READY)');
     return true;
   } catch (error) {
     console.error('Failed to start background tracker:', error);
