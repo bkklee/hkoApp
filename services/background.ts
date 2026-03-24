@@ -87,8 +87,9 @@ export async function startBackgroundTracker() {
     }
 
     // Register Background Task (15 mins)
+    // NOTE: For expo-background-task, the unit is MINUTES.
     await BackgroundTask.registerTaskAsync(BACKGROUND_RAIN_TASK, {
-        minimumInterval: 15 * 60, 
+        minimumInterval: 15, 
     });
 
     // Register Location Updates (2km)
