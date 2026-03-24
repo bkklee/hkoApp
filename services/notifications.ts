@@ -56,22 +56,23 @@ export async function updateRainNotification(rainfall: { amount: number, endTime
     return;
   }
 
-  // FORCED SEND FOR TESTING
-  try {
-    console.log(`[MOCK] Sending notification: ${title} - ${body}`);
-    await Notifications.scheduleNotificationAsync({
-      identifier: 'rain-alert',
-      content: {
-        title,
-        body,
-        priority: Notifications.AndroidNotificationPriority.HIGH,
-        sound: true,
-        sticky: true,
-      },
-      trigger: null,
-    });
-    lastNotificationBody = body;
-  } catch (e) {
-    console.error('Failed to schedule notification:', e);
+  // Only send if the message has changed to avoid bothering the user
+  if (body !== lastNotificationBody) {
+    try {
+      await Notifications.scheduleNotificationAsync({
+        identifier: 'rain-alert',
+        content: {
+          title,
+          body,
+          priority: Notifications.AndroidNotificationPriority.HIGH,
+          sound: true,
+          sticky: true,
+        },
+        trigger: null,
+      });
+      lastNotificationBody = body;
+    } catch (e) {
+      console.error('Failed to schedule notification:', e);
+    }
   }
 }

@@ -30,35 +30,12 @@ const HKO_RAINFALL_NOWCAST_URL = 'https://data.weather.gov.hk/weatherAPI/hko_dat
 const NOWCAST_API_URL = (lat: number, lon: number) => `https://kklee.dev/api/nowcast?lat=${lat}&lon=${lon}`;
 
 const ICON_MAP: { [key: string]: string } = {
-  '50': '天晴',
-  '51': '間中有陽光',
-  '52': '短暫有陽光',
-  '53': '間中有陽光及幾陣驟雨',
-  '54': '短暫陽光有幾陣驟雨',
-  '60': '多雲',
-  '61': '密雲',
-  '62': '微雨',
-  '63': '雨',
-  '64': '大雨',
-  '65': '雷暴',
-  '70': '天色良好',
-  '71': '天色良好',
-  '72': '天色良好',
-  '73': '天色良好',
-  '74': '天色良好',
-  '75': '天色良好',
-  '76': '大致多雲',
-  '77': '天色大致良好',
-  '80': '大風',
-  '81': '乾燥',
-  '82': '潮濕',
-  '83': '霧',
-  '84': '薄霧',
-  '85': '煙霞',
-  '90': '熱',
-  '91': '暖',
-  '92': '涼',
-  '93': '冷',
+  '50': '天晴', '51': '間中有陽光', '52': '短暫有陽光', '53': '間中有陽光及幾陣驟雨',
+  '54': '短暫陽光有幾陣驟雨', '60': '多雲', '61': '密雲', '62': '微雨', '63': '雨',
+  '64': '大雨', '65': '雷暴', '70': '天色良好', '71': '天色良好', '72': '天色良好',
+  '73': '天色良好', '74': '天色良好', '75': '天色良好', '76': '大致多雲',
+  '77': '天色大致良好', '80': '大風', '81': '乾燥', '82': '潮濕', '83': '霧',
+  '84': '薄霧', '85': '煙霞', '90': '熱', '91': '暖', '92': '涼', '93': '冷',
 };
 
 export async function fetchWeatherData(): Promise<{ data: WeatherData[], condition: string, suggestUmbrellaLongTerm: boolean, longTermLabel: string }> {
@@ -71,42 +48,25 @@ export async function fetchWeatherData(): Promise<{ data: WeatherData[], conditi
       const rssResponse = await fetch(HKO_RSS_URL);
       const rssText = await rssResponse.text();
       const match = rssText.match(/pic(\d+)\.png/);
-      if (match && match[1]) {
-        condition = ICON_MAP[match[1]] || '晴';
-      }
-    } catch (e) {
-      console.error('Error fetching RSS condition:', e);
-    }
+      if (match && match[1]) condition = ICON_MAP[match[1]] || '晴';
+    } catch (e) {}
 
     let suggestUmbrellaLongTerm = false;
     let longTermLabel = '今日';
     try {
       const forecastResponse = await fetch(HKO_FORECAST_RSS_URL);
       const forecastText = await forecastResponse.text();
-      
       const immediateSection = forecastText.split('展望')[0] || forecastText;
-      
       const rainKeywords = ['雨', '驟雨', '雷暴', '微雨'];
       suggestUmbrellaLongTerm = rainKeywords.some(keyword => immediateSection.includes(keyword));
-
       const currentHour = new Date().getHours();
-      if (forecastText.includes('今晚及明日') || currentHour >= 18) {
-        longTermLabel = '明日';
-      } else {
-        longTermLabel = '今日';
-      }
-    } catch (e) {
-      console.error('Error fetching forecast RSS:', e);
-    }
+      longTermLabel = (forecastText.includes('今晚及明日') || currentHour >= 18) ? '明日' : '今日';
+    } catch (e) {}
 
     const lines = csvData.trim().split('\n');
     const data = lines.slice(1).map(line => {
       const [time, station, tempStr] = line.split(',');
-      return {
-        time,
-        station,
-        temp: parseFloat(tempStr),
-      };
+      return { time, station, temp: parseFloat(tempStr) };
     }).filter(d => !isNaN(d.temp));
 
     return { data, condition, suggestUmbrellaLongTerm, longTermLabel };
@@ -133,16 +93,13 @@ function addMinutesToHKOTime(hkoTime: string, minsToAdd: number): string {
   const day = parseInt(hkoTime.slice(6, 8));
   const hours = parseInt(hkoTime.slice(8, 10));
   const mins = parseInt(hkoTime.slice(10, 12));
-  
   const date = new Date(year, month, day, hours, mins);
   date.setMinutes(date.getMinutes() + minsToAdd);
-  
   const y = date.getFullYear();
   const m = (date.getMonth() + 1).toString().padStart(2, '0');
   const d = date.getDate().toString().padStart(2, '0');
   const hh = date.getHours().toString().padStart(2, '0');
   const mm = date.getMinutes().toString().padStart(2, '0');
-  
   return `${y}${m}${d}${hh}${mm}`;
 }
 
@@ -152,81 +109,51 @@ async function fetchHKORainfallFallback(userLat: number, userLon: number): Promi
     if (!response.ok) throw new Error('HKO fallback failed');
     const csvData = await response.text();
     const lines = csvData.trim().split('\n');
-    
     let minDistance = Infinity;
-    let closestLat = 0;
-    let closestLon = 0;
+    let closestLat = 0, closestLon = 0;
 
     for (let i = 1; i < lines.length; i++) {
       const parts = lines[i].split(',');
       if (parts.length < 5) continue;
-      const gridLat = parseFloat(parts[2]);
-      const gridLon = parseFloat(parts[3]);
+      const gridLat = parseFloat(parts[2]), gridLon = parseFloat(parts[3]);
       const distance = Math.sqrt(Math.pow(gridLat - userLat, 2) + Math.pow(gridLon - userLon, 2));
       if (distance < minDistance) {
         minDistance = distance;
-        closestLat = gridLat;
-        closestLon = gridLon;
+        closestLat = gridLat; closestLon = gridLon;
       }
       if (distance < 0.005) break; 
     }
 
     const results: RainfallNowcast[] = [];
-    const targetLatStr = closestLat.toFixed(3);
-    const targetLonStr = closestLon.toFixed(3);
-
+    const targetLatStr = closestLat.toFixed(3), targetLonStr = closestLon.toFixed(3);
     for (let i = 1; i < lines.length; i++) {
       const parts = lines[i].split(',');
       if (parts.length < 5) continue;
-      const lat = parseFloat(parts[2]).toFixed(3);
-      const lon = parseFloat(parts[3]).toFixed(3);
+      const lat = parseFloat(parts[2]).toFixed(3), lon = parseFloat(parts[3]).toFixed(3);
       if (lat === targetLatStr && lon === targetLonStr) {
-        results.push({
-          updateTime: parts[0], 
-          endTime: parts[1],    
-          amount: parseFloat(parts[4])
-        });
+        results.push({ updateTime: parts[0], endTime: parts[1], amount: parseFloat(parts[4]) });
       }
       if (results.length === 4) break;
     }
     return results;
   } catch (e) {
-    console.error('HKO Fallback error:', e);
     return [];
   }
 }
 
 export async function fetchRainfallNowcast(userLat: number, userLon: number): Promise<RainfallNowcast[]> {
-  const now = new Date();
-  const mins = now.getMinutes();
-  const hkoTime = `${now.getFullYear()}${(now.getMonth()+1).toString().padStart(2, '0')}${now.getDate().toString().padStart(2, '0')}${now.getHours().toString().padStart(2, '0')}${now.getMinutes().toString().padStart(2, '0')}`;
-  
-  // Dynamic Mocking based on current minute:
-  if (mins % 2 === 0) {
-    // EVEN MINUTES: Rain is COMING (Warning stage)
-    return [
-      { amount: 0.0, updateTime: hkoTime, endTime: addMinutesToHKOTime(hkoTime, 30) },
-      { amount: 2.5, updateTime: hkoTime, endTime: addMinutesToHKOTime(hkoTime, 60) },
-      { amount: 0.0, updateTime: hkoTime, endTime: addMinutesToHKOTime(hkoTime, 90) },
-      { amount: 0.0, updateTime: hkoTime, endTime: addMinutesToHKOTime(hkoTime, 120) },
-    ];
-  } else {
-    // ODD MINUTES: Raining NOW (Ongoing stage)
-    return [
-      { amount: 15.0, updateTime: hkoTime, endTime: addMinutesToHKOTime(hkoTime, 30) },
-      { amount: 8.0, updateTime: hkoTime, endTime: addMinutesToHKOTime(hkoTime, 60) },
-      { amount: 0.0, updateTime: hkoTime, endTime: addMinutesToHKOTime(hkoTime, 90) },
-      { amount: 0.0, updateTime: hkoTime, endTime: addMinutesToHKOTime(hkoTime, 120) },
-    ];
-  }
-  
-  /* 原本的真實代碼暫時停用
   try {
     const response = await fetch(NOWCAST_API_URL(userLat, userLon));
-...
+    if (!response.ok) return fetchHKORainfallFallback(userLat, userLon);
+    const data = await response.json();
+    if (!data || !data.rainfallNowcast) return fetchHKORainfallFallback(userLat, userLon);
+    const updatedTime = data.updatedTime;
+    return data.rainfallNowcast.map((amount: number, index: number) => ({
+      updateTime: updatedTime,
+      endTime: addMinutesToHKOTime(updatedTime, (index + 1) * 30),
+      amount: amount
+    }));
   } catch (error) {
-    console.error('Error fetching rainfall nowcast from API, falling back to HKO:', error);
     return fetchHKORainfallFallback(userLat, userLon);
   }
-  */
 }
