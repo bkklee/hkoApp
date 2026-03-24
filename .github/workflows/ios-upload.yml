@@ -10,8 +10,10 @@ jobs:
         uses: actions/checkout@v4
 
       - name: 🍏 Setup Xcode Version
-        # 嘗試切換到最高版本的 Xcode
-        run: sudo xcode-select -s /Applications/Xcode_16.app
+        # 切換到 Xcode 16.2 (符合 React Native >= 16.1 的要求)
+        run: |
+          sudo xcode-select -s /Applications/Xcode_16.2.app/Contents/Developer
+          xcodebuild -version
 
       - name: 🍏 Setup Node
         uses: actions/setup-node@v4
