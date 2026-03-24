@@ -197,30 +197,24 @@ async function fetchHKORainfallFallback(userLat: number, userLon: number): Promi
 }
 
 export async function fetchRainfallNowcast(userLat: number, userLon: number): Promise<RainfallNowcast[]> {
+  // --- MOCK MODE: SIMULATING HEAVY RAIN ---
+  const now = new Date();
+  const hkoTime = `${now.getFullYear()}${(now.getMonth()+1).toString().padStart(2, '0')}${now.getDate().toString().padStart(2, '0')}${now.getHours().toString().padStart(2, '0')}${now.getMinutes().toString().padStart(2, '0')}`;
+  
+  return [
+    { amount: 15.5, updateTime: hkoTime, endTime: addMinutesToHKOTime(hkoTime, 30) },
+    { amount: 5.0, updateTime: hkoTime, endTime: addMinutesToHKOTime(hkoTime, 60) },
+    { amount: 0.0, updateTime: hkoTime, endTime: addMinutesToHKOTime(hkoTime, 90) },
+    { amount: 0.0, updateTime: hkoTime, endTime: addMinutesToHKOTime(hkoTime, 120) },
+  ];
+  
+  /* 原本的真實代碼暫時停用
   try {
     const response = await fetch(NOWCAST_API_URL(userLat, userLon));
-    
-    if (!response.ok) {
-      // API is down or returned 500, fallback silently to HKO data
-      return fetchHKORainfallFallback(userLat, userLon);
-    }
-
-    const data = await response.json();
-    
-    if (!data || !data.rainfallNowcast) {
-      return fetchHKORainfallFallback(userLat, userLon);
-    }
-
-    const updatedTime = data.updatedTime;
-    return data.rainfallNowcast.map((amount: number, index: number) => {
-      return {
-        updateTime: updatedTime,
-        endTime: addMinutesToHKOTime(updatedTime, (index + 1) * 30),
-        amount: amount
-      };
-    });
+...
   } catch (error) {
     console.error('Error fetching rainfall nowcast from API, falling back to HKO:', error);
     return fetchHKORainfallFallback(userLat, userLon);
   }
+  */
 }
