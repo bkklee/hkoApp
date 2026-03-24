@@ -1,13 +1,10 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
-import { StyleSheet, View, Text, ScrollView, RefreshControl, TouchableOpacity } from 'react-native';
-import AsyncStorage from '@react-native-async-storage/async-storage';
-import * as TaskManager from 'expo-task-manager';
+import { StyleSheet, View, Text, ScrollView, RefreshControl } from 'react-native';
 import * as Location from 'expo-location';
 import { fetchWeatherData, fetch9DayForecast, fetchRainfallNowcast, WeatherData, ForecastData, RainfallNowcast } from '../../services/weather';
 import { updateRainNotification } from '../../services/notifications';
 import { WeatherDisplay } from '../../components/WeatherDisplay';
 import { STATIONS } from '../../constants/stations';
-import { BACKGROUND_RAIN_TASK, LAST_BG_SYNC_KEY } from '../../services/background';
 
 export default function HomeScreen() {
   const [loading, setLoading] = useState(true);
@@ -17,7 +14,6 @@ export default function HomeScreen() {
   const [forecast, setForecast] = useState<ForecastData[]>([]);
   const [rainfall, setRainfall] = useState<RainfallNowcast[]>([]);
   const [isUserLocation, setIsUserLocation] = useState(false);
-  const [lastBgSync, setLastBgSync] = useState<string | null>(null);
 
   const lastTargetStationRef = useRef<string | null>(null);
   const lastForecastUpdateRef = useRef<number>(0);
@@ -30,11 +26,6 @@ export default function HomeScreen() {
   });
 
   const loadWeather = useCallback(async (forceForecast = false) => {
-    try {
-      const stored = await AsyncStorage.getItem(LAST_BG_SYNC_KEY);
-      if (stored) setLastBgSync(stored);
-    } catch (e) {}
-
     if (!refreshing && !currentWeather) {
       setLoading(true);
     }
@@ -75,8 +66,6 @@ export default function HomeScreen() {
         lastForecastUpdateRef.current = now;
       }
 
-      // --- IMPROVED STATION MATCHING ---
-      // Use the last known station if we already have one to avoid flickering back to HKO
       const defaultStation = STATIONS[0];
       const targetStationName = lastTargetStationRef.current || defaultStation.name;
       const initialMatchedData = allWeatherData.find(d => d.station === targetStationName) || allWeatherData[0];
@@ -94,6 +83,7 @@ export default function HomeScreen() {
             if (req.status !== 'granted') {
               const rain = await fetchRainfallNowcast(defaultStation.lat, defaultStation.lon).catch(() => []);
               setRainfall(rain);
+              await updateRainNotification(rain);
               return;
             }
           }
@@ -130,7 +120,6 @@ export default function HomeScreen() {
 
           const rain = await fetchRainfallNowcast(targetLat, targetLon).catch(() => []);
           setRainfall(rain);
-          // Trigger notification in foreground for testing/refresh
           await updateRainNotification(rain);
         } catch (e) {
           console.log('Background location refinement skipped:', e);
@@ -186,11 +175,6 @@ export default function HomeScreen() {
       contentContainerStyle={{ flexGrow: 1 }}
       refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#FFF" />}
     >
-      {lastBgSync && (
-        <View style={styles.debugInfo}>
-          <Text style={styles.debugText}>背景監測中: 最後執行於 {lastBgSync}</Text>
-        </View>
-      )}
       {currentWeather && (
         <WeatherDisplay 
           station={currentWeather.station}
@@ -209,9 +193,17 @@ export default function HomeScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#000' },
-  debugInfo: { backgroundColor: '#111', padding: 6, alignItems: 'center' },
-  debugText: { color: '#666', fontSize: 10 },
-  center: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#000' },
-  text: { color: '#FFF' },
+  container: {
+    flex: 1,
+    backgroundColor: '#000',
+  },
+  center: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: '#000',
+  },
+  text: {
+    color: '#FFF',
+  },
 });
