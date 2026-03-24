@@ -6,6 +6,7 @@ import { fetchRainfallNowcast } from './weather';
 import { updateRainNotification, requestNotificationPermissions } from './notifications';
 
 export const BACKGROUND_RAIN_TASK = 'background-rain-check';
+export const LAST_BG_SYNC_KEY = 'last-background-sync';
 
 // Define the background task
 TaskManager.defineTask(BACKGROUND_RAIN_TASK, async ({ data, error }) => {
@@ -110,9 +111,9 @@ export async function startBackgroundTracker() {
 
     // Also register Location Updates (Movement-based updates)
     await Location.startLocationUpdatesAsync(BACKGROUND_RAIN_TASK, {
-      accuracy: Location.Accuracy.Balanced,
+      accuracy: Location.Accuracy.High, // Use High accuracy to encourage OS wakeup
       timeInterval: 5 * 60 * 1000, // 5 minutes
-      distanceInterval: 2000, // Or when user moves 2km
+      distanceInterval: 500, // Trigger every 500m (more aggressive)
       foregroundService: {
         notificationTitle: "Rainy HK 降雨監測中",
         notificationBody: "正在背景為您追蹤即時雨雲動向",
