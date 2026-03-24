@@ -197,16 +197,28 @@ async function fetchHKORainfallFallback(userLat: number, userLon: number): Promi
 }
 
 export async function fetchRainfallNowcast(userLat: number, userLon: number): Promise<RainfallNowcast[]> {
-  // --- MOCK MODE: SIMULATING HEAVY RAIN ---
   const now = new Date();
+  const mins = now.getMinutes();
   const hkoTime = `${now.getFullYear()}${(now.getMonth()+1).toString().padStart(2, '0')}${now.getDate().toString().padStart(2, '0')}${now.getHours().toString().padStart(2, '0')}${now.getMinutes().toString().padStart(2, '0')}`;
   
-  return [
-    { amount: 15.5, updateTime: hkoTime, endTime: addMinutesToHKOTime(hkoTime, 30) },
-    { amount: 5.0, updateTime: hkoTime, endTime: addMinutesToHKOTime(hkoTime, 60) },
-    { amount: 0.0, updateTime: hkoTime, endTime: addMinutesToHKOTime(hkoTime, 90) },
-    { amount: 0.0, updateTime: hkoTime, endTime: addMinutesToHKOTime(hkoTime, 120) },
-  ];
+  // Dynamic Mocking based on current minute:
+  if (mins % 2 === 0) {
+    // EVEN MINUTES: Rain is COMING (Warning stage)
+    return [
+      { amount: 0.0, updateTime: hkoTime, endTime: addMinutesToHKOTime(hkoTime, 30) },
+      { amount: 2.5, updateTime: hkoTime, endTime: addMinutesToHKOTime(hkoTime, 60) },
+      { amount: 0.0, updateTime: hkoTime, endTime: addMinutesToHKOTime(hkoTime, 90) },
+      { amount: 0.0, updateTime: hkoTime, endTime: addMinutesToHKOTime(hkoTime, 120) },
+    ];
+  } else {
+    // ODD MINUTES: Raining NOW (Ongoing stage)
+    return [
+      { amount: 15.0, updateTime: hkoTime, endTime: addMinutesToHKOTime(hkoTime, 30) },
+      { amount: 8.0, updateTime: hkoTime, endTime: addMinutesToHKOTime(hkoTime, 60) },
+      { amount: 0.0, updateTime: hkoTime, endTime: addMinutesToHKOTime(hkoTime, 90) },
+      { amount: 0.0, updateTime: hkoTime, endTime: addMinutesToHKOTime(hkoTime, 120) },
+    ];
+  }
   
   /* 原本的真實代碼暫時停用
   try {
