@@ -60,7 +60,6 @@ export async function startBackgroundTracker() {
     const isTaskRegistered = await TaskManager.isTaskRegisteredAsync(BACKGROUND_RAIN_TASK);
     console.log(`Initial Status: Task registered = ${isTaskRegistered}`);
 
-    // Always request permissions first
     await requestNotificationPermissions();
 
     const { status: foregroundStatus } = await Location.requestForegroundPermissionsAsync();
@@ -79,20 +78,19 @@ export async function startBackgroundTracker() {
       return false;
     }
 
-    // 1. Register Background Fetch Task (Periodic)
+    // 1. Register Background Fetch Task (Every 15 mins)
     await BackgroundTask.registerTaskAsync(BACKGROUND_RAIN_TASK, {
-        minimumInterval: 15, // 15 minutes
+        minimumInterval: 15, 
     });
 
-    // 2. Register Location Updates (Persistent)
-    // Using showsBackgroundLocationIndicator to prevent iOS from killing the process
+    // 2. Register Location Updates (Discrete updates to avoid blue arrow)
     await Location.startLocationUpdatesAsync(BACKGROUND_RAIN_TASK, {
-      accuracy: Location.Accuracy.Balanced,
+      accuracy: Location.Accuracy.Balanced, // Balanced is usually enough and more discrete
       timeInterval: 15 * 60 * 1000, 
       distanceInterval: 2000, 
-      showsBackgroundLocationIndicator: true, // Crucial for persistent iOS backgrounding
-      pausesUpdatesAutomatically: false,
-      activityType: Location.ActivityType.OtherNavigation,
+      showsBackgroundLocationIndicator: false, // REMOVED BLUE ARROW
+      pausesUpdatesAutomatically: true, // Allow OS to pause if user is stationary
+      activityType: Location.ActivityType.Other, 
       foregroundService: {
         notificationTitle: "Rainy HK 降雨監測中",
         notificationBody: "正在背景為您追蹤即時雨雲動向",
@@ -100,7 +98,7 @@ export async function startBackgroundTracker() {
       },
     });
 
-    console.log('--- BACKGROUND TRACKER FULLY ACTIVATED ---');
+    console.log('--- BACKGROUND TRACKER ACTIVATED (SUBTLE MODE) ---');
     return true;
   } catch (error) {
     console.error('Failed to start background tracker:', error);
