@@ -4,10 +4,14 @@ on:
 
 jobs:
   upload:
-    runs-on: macos-latest
+    runs-on: macos-15 # 使用較新的 macOS 15 鏡像
     steps:
       - name: 🏗 Checkout repository
         uses: actions/checkout@v4
+
+      - name: 🍏 Setup Xcode Version
+        # 嘗試切換到最高版本的 Xcode
+        run: sudo xcode-select -s /Applications/Xcode_16.app
 
       - name: 🍏 Setup Node
         uses: actions/setup-node@v4
