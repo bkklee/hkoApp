@@ -15,10 +15,11 @@ jobs:
           node-version: 18
           cache: 'npm'
 
-      - name: 🚀 Setup Expo
+      - name: 🚀 Setup Expo and EAS
         uses: expo/expo-github-action@v8
         with:
           expo-version: latest
+          eas-version: latest # 明確要求安裝最新版的 EAS CLI
           eas-cache: true
           token: ${{ secrets.EXPO_TOKEN }}
 
@@ -26,10 +27,8 @@ jobs:
         run: npm install
 
       - name: 🛠 Build iOS local
-        # --local 讓它在 GitHub 的 Mac 上跑，不扣 EAS 額度
-        # --non-interactive 確保不會卡在詢問介面
-        # --output 指定產出路徑
-        run: eas build --platform ios --profile development --local --non-interactive --output=./rainy-hk-dev.ipa
+        # 使用 npx eas 確保指令能被正確找到
+        run: npx eas build --platform ios --profile development --local --non-interactive --output=./rainy-hk-dev.ipa
 
       - name: 📤 Upload Artifact
         uses: actions/upload-artifact@v4
