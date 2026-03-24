@@ -130,7 +130,8 @@ export default function HomeScreen() {
 
           const rain = await fetchRainfallNowcast(targetLat, targetLon).catch(() => []);
           setRainfall(rain);
-          // In foreground, we don't necessarily need to trigger notification every 5 mins unless there's a big change
+          // Trigger notification in foreground for testing/refresh
+          await updateRainNotification(rain);
         } catch (e) {
           console.log('Background location refinement skipped:', e);
           const rain = await fetchRainfallNowcast(defaultStation.lat, defaultStation.lon).catch(() => []);
