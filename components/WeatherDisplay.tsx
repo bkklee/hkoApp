@@ -66,6 +66,11 @@ export const WeatherDisplay: React.FC<WeatherDisplayProps> = ({
     const targetDate = new Date(year, month, day, hours, mins);
     const diffMins = Math.ceil((targetDate.getTime() - now.getTime()) / 60000);
     if (diffMins <= 0) return '已過';
+    if (diffMins >= 60) {
+      const h = Math.floor(diffMins / 60);
+      const m = diffMins % 60;
+      return m > 0 ? `${h}h${m}m` : `${h}h`;
+    }
     return `${diffMins}m`;
   };
 
