@@ -22,7 +22,7 @@ export const WeatherDisplay: React.FC<WeatherDisplayProps> = ({
   
   const { width, height } = useWindowDimensions();
   const isPad = Platform.OS === 'ios' && Platform.isPad && (width >= 768 || height >= 768);
-  const contentWidth = isPad ? Math.min(width * 0.85, 800) : width;
+  const contentWidth = isPad ? Math.min(width * 0.85, 800) : width - 40;
   
   const pulseAnim = useRef(new Animated.Value(1)).current;
   const [now, setNow] = useState(new Date());
@@ -66,8 +66,16 @@ export const WeatherDisplay: React.FC<WeatherDisplayProps> = ({
     const targetDate = new Date(year, month, day, hours, mins);
     const diffMins = Math.ceil((targetDate.getTime() - now.getTime()) / 60000);
     if (diffMins <= 0) return '已過';
+    if (diffMins >= 60) return `${Math.floor(diffMins / 60)}h${diffMins % 60 || ''}m`;
     return `${diffMins}m`;
   };
+
+  // Layout for Chart
+  const chartPadding = isPad ? 20 : 10;
+  const gapSize = isPad ? 16 : 8;
+  const numBars = 4;
+  const chartWidth = contentWidth - (chartPadding * 2);
+  const barWidth = (chartWidth - (numBars - 1) * gapSize) / numBars;
 
   const renderContent = () => (
     <>
@@ -87,10 +95,7 @@ export const WeatherDisplay: React.FC<WeatherDisplayProps> = ({
       {/* Hero Section */}
       <View style={isPad ? styles.tempHeroPad : styles.tempHero}>
         <Text style={isPad ? styles.mainTempPad : styles.mainTemp}>{Math.round(temp)}<Text style={styles.degreeUnit}>°C</Text></Text>
-        <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: isPad ? 'center' : 'flex-start' }}>
-          <Text style={isPad ? styles.conditionTextPad : styles.conditionText}>{condition}</Text>
-          <Text style={styles.dataTimeText}> • {formatShortTime(time)} 更新</Text>
-        </View>
+        <Text style={isPad ? styles.conditionTextPad : styles.conditionText}>{condition}</Text>
       </View>
 
       {/* Umbrella Section */}
@@ -108,29 +113,40 @@ export const WeatherDisplay: React.FC<WeatherDisplayProps> = ({
         </View>
       </View>
 
-      {/* Rain Section with Timeline Labels */}
+      {/* Rain Section with Precise Boundary Alignment */}
       <View style={isPad ? styles.rainSectionPad : styles.rainSection}>
         <Text style={styles.sectionLabel}>未來兩小時降雨預測 (mm)</Text>
-        <View style={styles.timelineContainer}>
-          <View style={[styles.barsContainer, { height: isPad ? 90 : 70 }]}>
+        <View style={[styles.timelineContainer, { paddingHorizontal: chartPadding }]}>
+           <View style={[styles.barsContainer, { width: chartWidth, height: isPad ? 90 : 70 }]}>
             {rainfall.slice(0,4).map((item, i) => (
-              <View key={i} style={{ width: isPad ? 100 : 60, alignItems: 'center' }}>
+              <View key={i} style={{ width: barWidth, alignItems: 'center' }}>
                 <Text style={styles.barValueText}>{item.amount >= 0.05 ? item.amount.toFixed(1) : '0'}</Text>
-                <View style={[styles.continuousBar, { width: isPad ? 80 : 50, height: Math.max(4, Math.min(item.amount * (isPad ? 35 : 35), isPad ? 90 : 70)), backgroundColor: item.amount >= 0.05 ? mainColor : 'rgba(255,255,255,0.05)' }]} />
+                <View style={[styles.continuousBar, { width: barWidth, height: Math.max(4, Math.min(item.amount * (isPad ? 35 : 35), isPad ? 90 : 70)), backgroundColor: item.amount >= 0.05 ? mainColor : 'rgba(255,255,255,0.05)' }]} />
               </View>
             ))}
           </View>
-          <View style={styles.boundaryContainer}>
-             <View style={styles.boundaryMark}>
+
+          <View style={[styles.boundaryContainer, { width: chartWidth }]}>
+             {/* NOW Label at the very start */}
+             <View style={[styles.boundaryMark, { left: 0, alignItems: 'flex-start' }]}>
                 <Text style={styles.boundaryTimeHighlight}>{formatNowTime(now)}</Text>
                 <Text style={styles.boundaryLabelHighlight}>現在</Text>
              </View>
-             {rainfall.slice(0,4).map((item, i) => (
-               <View key={i} style={styles.boundaryMark}>
-                  <Text style={styles.boundaryTime}>{formatShortTime(item.endTime)}</Text>
-                  <Text style={styles.boundaryLabel}>{getRelativeMins(item.endTime)}</Text>
-               </View>
-             ))}
+             {/* Boundary Labels between bars */}
+             {rainfall.slice(0,4).map((item, i) => {
+               const isLast = i === 3;
+               const pos = isLast ? chartWidth : (i + 1) * barWidth + (i + 0.5) * gapSize;
+               return (
+                 <View key={i} style={[styles.boundaryMark, { 
+                   left: isLast ? undefined : pos - 30,
+                   right: isLast ? 0 : undefined,
+                   alignItems: isLast ? 'flex-end' : 'center'
+                 }]}>
+                    <Text style={styles.boundaryTime}>{formatShortTime(item.endTime)}</Text>
+                    <Text style={styles.boundaryLabel}>{getRelativeMins(item.endTime)}</Text>
+                 </View>
+               );
+             })}
           </View>
         </View>
       </View>
@@ -163,7 +179,7 @@ export const WeatherDisplay: React.FC<WeatherDisplayProps> = ({
     <View style={styles.outerContainer}>
       <StatusBar style="light" />
       {isPad ? (
-        <View style={[styles.padFitContainer, { width: Math.min(width * 0.8, 700) }]}>
+        <View style={[styles.padFitContainer, { width: contentWidth }]}>
           {renderContent()}
         </View>
       ) : (
@@ -189,13 +205,12 @@ const styles = StyleSheet.create({
   warningBadgeText: { fontSize: 10, fontWeight: '900' },
   
   tempHero: { marginBottom: 25 },
-  tempHeroPad: { marginBottom: 20, alignItems: 'center' },
+  tempHeroPad: { marginBottom: 20 },
   mainTemp: { color: '#FFF', fontSize: 72, fontWeight: '200' },
   mainTempPad: { color: '#FFF', fontSize: 90, fontWeight: '100' },
   degreeUnit: { fontSize: 28 },
   conditionText: { color: 'rgba(255,255,255,0.7)', fontSize: 22 },
   conditionTextPad: { color: 'rgba(255,255,255,0.7)', fontSize: 24 },
-  dataTimeText: { color: 'rgba(255,255,255,0.3)', fontSize: 12, marginTop: 4 },
   
   umbrellaSection: { flexDirection: 'row', backgroundColor: 'rgba(255,255,255,0.05)', borderRadius: 16, padding: 16, marginBottom: 25, alignItems: 'center' },
   umbrellaSectionPad: { flexDirection: 'row', backgroundColor: 'rgba(255,255,255,0.05)', borderRadius: 20, paddingVertical: 16, paddingHorizontal: 24, marginBottom: 30, alignItems: 'center' },
@@ -206,14 +221,14 @@ const styles = StyleSheet.create({
   
   rainSection: { marginBottom: 35 },
   rainSectionPad: { marginBottom: 30 },
-  sectionLabel: { color: 'rgba(255,255,255,0.5)', fontSize: 14, fontWeight: '600', marginBottom: 10 },
-  timelineContainer: { marginTop: 5 },
-  barsContainer: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-end' },
+  sectionLabel: { color: 'rgba(255,255,255,0.5)', fontSize: 14, fontWeight: '600' },
+  timelineContainer: { marginTop: 15 },
+  barsContainer: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-end', marginBottom: 10 },
   barValueText: { fontSize: 10, marginBottom: 4, color: '#666' },
   continuousBar: { borderRadius: 4 },
   
-  boundaryContainer: { flexDirection: 'row', justifyContent: 'space-between', marginTop: 10 },
-  boundaryMark: { alignItems: 'center', width: 60 },
+  boundaryContainer: { flexDirection: 'row', height: 45, position: 'relative' },
+  boundaryMark: { position: 'absolute', width: 60 },
   boundaryTime: { color: 'rgba(255,255,255,0.3)', fontSize: 10 },
   boundaryLabel: { color: 'rgba(255,255,255,0.2)', fontSize: 10 },
   boundaryTimeHighlight: { color: '#FFF', fontSize: 10, fontWeight: '700' },
