@@ -22,7 +22,7 @@ export const WeatherDisplay: React.FC<WeatherDisplayProps> = ({
   
   const { width, height } = useWindowDimensions();
   const isPad = Platform.OS === 'ios' && Platform.isPad && (width >= 768 || height >= 768);
-  const contentWidth = isPad ? Math.min(width * 0.85, 800) : width - 40;
+  const contentWidth = isPad ? Math.min(width * 0.85, 800) : width;
   
   const pulseAnim = useRef(new Animated.Value(1)).current;
   const [now, setNow] = useState(new Date());
@@ -77,7 +77,7 @@ export const WeatherDisplay: React.FC<WeatherDisplayProps> = ({
   const chartPadding = isPad ? 20 : 10;
   const gapSize = isPad ? 16 : 8;
   const numBars = 4;
-  const chartWidth = contentWidth - (chartPadding * 2);
+  const chartWidth = contentWidth - (isPad ? chartPadding * 2 : 40 + chartPadding * 2);
   const barWidth = (chartWidth - (numBars - 1) * gapSize) / numBars;
 
   const renderContent = () => (
@@ -235,7 +235,7 @@ const styles = StyleSheet.create({
   dayDateText: { color: 'rgba(255,255,255,0.4)', fontSize: 12, marginTop: 2 },
   dayIcon: { width: 44, height: 44, marginVertical: 10 },
   maxTemp: { color: '#FFF', fontSize: 16, fontWeight: '600' },
-  minTempText: { color: 'rgba(255,255,255,0.4)', fontSize: 14 },
+  minTempText: { color: 'rgba(255,255,255,0.4)', fontSize: 16, fontWeight: '600' },
   footer: { marginTop: 'auto', paddingBottom: 30, alignItems: 'center' },
   creditText: { color: 'rgba(255,255,255,0.3)', fontSize: 11 },
 });
