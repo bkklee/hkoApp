@@ -22,6 +22,7 @@ export const WeatherDisplay: React.FC<WeatherDisplayProps> = ({
   
   const { width, height } = useWindowDimensions();
   const isPad = Platform.OS === 'ios' && Platform.isPad && (width >= 768 || height >= 768);
+  const isLandscape = width > height;
   const contentWidth = isPad ? Math.min(width * 0.85, 800) : width;
   
   const pulseAnim = useRef(new Animated.Value(1)).current;
@@ -66,11 +67,7 @@ export const WeatherDisplay: React.FC<WeatherDisplayProps> = ({
     const targetDate = new Date(year, month, day, hours, mins);
     const diffMins = Math.ceil((targetDate.getTime() - now.getTime()) / 60000);
     if (diffMins <= 0) return '已過';
-    if (diffMins >= 60) {
-      const h = Math.floor(diffMins / 60);
-      const m = diffMins % 60;
-      return m > 0 ? `${h}h${m}m` : `${h}h`;
-    }
+    if (diffMins >= 60) return `${Math.floor(diffMins / 60)}h${diffMins % 60 || ''}m`;
     return `${diffMins}m`;
   };
 
@@ -84,7 +81,7 @@ export const WeatherDisplay: React.FC<WeatherDisplayProps> = ({
     <View key={i} style={isPad ? styles.forecastDayPad : styles.forecastDay}>
       <Text style={styles.dayName}>{day.week.replace('星期', '')}</Text>
       <Text style={styles.dayDateText}>{day.forecastDate.slice(6, 8)}/{day.forecastDate.slice(4, 6)}</Text>
-      <Image source={{ uri: `https://www.hko.gov.hk/images/HKOWxIconOutline/pic${day.ForecastIcon}.png` }} style={styles.dayIcon} />
+      <Image source={{ uri: `https://www.hko.gov.hk/images/HKOWxIconOutline/pic${day.ForecastIcon}.png` }} style={isPad && isLandscape ? styles.dayIconPadSmall : styles.dayIcon} />
       <View style={{ alignItems: 'center' }}>
         <Text style={styles.maxTemp}>{day.forecastMaxtemp.value}°</Text>
         <Text style={styles.minTempText}>{day.forecastMintemp.value}°</Text>
@@ -106,36 +103,36 @@ export const WeatherDisplay: React.FC<WeatherDisplayProps> = ({
         )}
       </View>
 
-      <View style={isPad ? styles.tempHeroPad : styles.tempHero}>
-        <Text style={isPad ? styles.mainTempPad : styles.mainTemp}>{Math.round(temp)}<Text style={styles.degreeUnit}>°C</Text></Text>
+      <View style={isPad ? (isLandscape ? styles.tempHeroPadSmall : styles.tempHeroPad) : styles.tempHero}>
+        <Text style={isPad ? (isLandscape ? styles.mainTempPadSmall : styles.mainTempPad) : styles.mainTemp}>{Math.round(temp)}<Text style={styles.degreeUnit}>°C</Text></Text>
         <View style={{ flexDirection: 'row', alignItems: 'baseline', justifyContent: isPad ? 'center' : 'flex-start' }}>
-          <Text style={isPad ? styles.conditionTextPad : styles.conditionText}>{condition}</Text>
+          <Text style={isPad ? (isLandscape ? styles.conditionTextPadSmall : styles.conditionTextPad) : styles.conditionText}>{condition}</Text>
           <Text style={styles.dataTimeText}>  •  {formatShortTime(time)} 更新</Text>
         </View>
       </View>
 
-      <View style={isPad ? styles.umbrellaSectionPad : styles.umbrellaSection}>
+      <View style={isPad ? (isLandscape ? styles.umbrellaSectionPadSmall : styles.umbrellaSectionPad) : styles.umbrellaSection}>
         <View style={styles.umbrellaItem}>
-           <Ionicons name="umbrella" size={isPad ? 24 : 20} color={anyRainInTwoHours ? "#40C4FF" : "rgba(255,255,255,0.15)"} />
+           <Ionicons name="umbrella" size={isPad ? 20 : 20} color={anyRainInTwoHours ? "#40C4FF" : "rgba(255,255,255,0.15)"} />
            <Text style={styles.umbrellaLabel}>兩小時內</Text>
            <Text style={[styles.umbrellaValue, { color: anyRainInTwoHours ? "#40C4FF" : "rgba(255,255,255,0.3)" }]}>{anyRainInTwoHours ? "建議帶傘" : "無須帶傘"}</Text>
         </View>
         <View style={styles.dividerVertical} />
         <View style={styles.umbrellaItem}>
-           <Ionicons name="umbrella" size={isPad ? 24 : 20} color={suggestUmbrellaLongTerm ? "#40C4FF" : "rgba(255,255,255,0.15)"} />
+           <Ionicons name="umbrella" size={isPad ? 20 : 20} color={suggestUmbrellaLongTerm ? "#40C4FF" : "rgba(255,255,255,0.15)"} />
            <Text style={styles.umbrellaLabel}>{longTermLabel}</Text>
            <Text style={[styles.umbrellaValue, { color: suggestUmbrellaLongTerm ? "#40C4FF" : "rgba(255,255,255,0.3)" }]}>{suggestUmbrellaLongTerm ? "建議帶傘" : "無須帶傘"}</Text>
         </View>
       </View>
 
-      <View style={isPad ? styles.rainSectionPad : styles.rainSection}>
+      <View style={isPad ? (isLandscape ? styles.rainSectionPadSmall : styles.rainSectionPad) : styles.rainSection}>
         <Text style={styles.sectionLabel}>未來兩小時降雨預測 (mm)</Text>
         <View style={[styles.timelineContainer, { paddingHorizontal: chartPadding }]}>
-           <View style={[styles.barsContainer, { width: chartWidth, height: isPad ? 90 : 70 }]}>
+           <View style={[styles.barsContainer, { width: chartWidth, height: isPad ? (isLandscape ? 60 : 90) : 70 }]}>
             {rainfall.slice(0,4).map((item, i) => (
               <View key={i} style={{ width: barWidth, alignItems: 'center' }}>
                 <Text style={styles.barValueText}>{item.amount >= 0.05 ? item.amount.toFixed(1) : '0'}</Text>
-                <View style={[styles.continuousBar, { width: barWidth, height: Math.max(4, Math.min(item.amount * (isPad ? 35 : 35), isPad ? 90 : 70)), backgroundColor: item.amount >= 0.05 ? mainColor : 'rgba(255,255,255,0.05)' }]} />
+                <View style={[styles.continuousBar, { width: barWidth, height: Math.max(4, Math.min(item.amount * (isLandscape ? 25 : 35), isPad ? (isLandscape ? 60 : 90) : 70)), backgroundColor: item.amount >= 0.05 ? mainColor : 'rgba(255,255,255,0.05)' }]} />
               </View>
             ))}
           </View>
@@ -163,7 +160,7 @@ export const WeatherDisplay: React.FC<WeatherDisplayProps> = ({
         </View>
       </View>
 
-      <View style={styles.forecastSection}>
+      <View style={isLandscape ? styles.forecastSectionSmall : styles.forecastSection}>
         <Text style={styles.forecastTitle}>九日天氣預報</Text>
         {isPad ? (
           <View style={styles.forecastContainerPad}>
@@ -176,7 +173,7 @@ export const WeatherDisplay: React.FC<WeatherDisplayProps> = ({
         )}
       </View>
 
-      <View style={styles.footer}>
+      <View style={isLandscape ? styles.footerSmall : styles.footer}>
         <Text style={styles.creditText}>Data by Hong Kong Observatory</Text>
       </View>
     </>
@@ -186,7 +183,7 @@ export const WeatherDisplay: React.FC<WeatherDisplayProps> = ({
     <View style={styles.outerContainer}>
       <StatusBar style="light" />
       {isPad ? (
-        <View style={[styles.padFitContainer, { width: contentWidth }]}>
+        <View style={[styles.padFitContainer, { width: contentWidth, paddingTop: isLandscape ? 40 : 80 }]}>
           {renderContent()}
         </View>
       ) : (
@@ -201,7 +198,8 @@ export const WeatherDisplay: React.FC<WeatherDisplayProps> = ({
 const styles = StyleSheet.create({
   outerContainer: { flex: 1, backgroundColor: '#000', alignItems: 'center' },
   iphoneContainer: { flex: 1, width: '100%', paddingTop: 90, paddingHorizontal: 20 },
-  padFitContainer: { flex: 1, paddingTop: 80, paddingBottom: 60, justifyContent: 'space-between' },
+  padFitContainer: { flex: 1, paddingBottom: 40, justifyContent: 'space-between' },
+  
   header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 },
   headerPad: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 15 },
   locationRow: { flexDirection: 'row', alignItems: 'center' },
@@ -209,22 +207,30 @@ const styles = StyleSheet.create({
   stationNamePad: { color: '#FFF', fontSize: 32, fontWeight: '900' },
   warningBadge: { paddingHorizontal: 8, paddingVertical: 4, borderRadius: 4, borderWidth: 1 },
   warningBadgeText: { fontSize: 10, fontWeight: '900' },
+  
   tempHero: { marginBottom: 25 },
   tempHeroPad: { marginBottom: 20, alignItems: 'center' },
+  tempHeroPadSmall: { marginBottom: 10, alignItems: 'center' },
   mainTemp: { color: '#FFF', fontSize: 72, fontWeight: '200' },
   mainTempPad: { color: '#FFF', fontSize: 90, fontWeight: '100' },
+  mainTempPadSmall: { color: '#FFF', fontSize: 70, fontWeight: '100' },
   degreeUnit: { fontSize: 28 },
   conditionText: { color: 'rgba(255,255,255,0.8)', fontSize: 22 },
   conditionTextPad: { color: 'rgba(255,255,255,0.8)', fontSize: 24 },
+  conditionTextPadSmall: { color: 'rgba(255,255,255,0.8)', fontSize: 20 },
   dataTimeText: { color: 'rgba(255,255,255,0.3)', fontSize: 13, fontWeight: '400' },
+  
   umbrellaSection: { flexDirection: 'row', backgroundColor: 'rgba(255,255,255,0.05)', borderRadius: 16, padding: 16, marginBottom: 25, alignItems: 'center' },
   umbrellaSectionPad: { flexDirection: 'row', backgroundColor: 'rgba(255,255,255,0.05)', borderRadius: 20, paddingVertical: 16, paddingHorizontal: 24, marginBottom: 30, alignItems: 'center' },
+  umbrellaSectionPadSmall: { flexDirection: 'row', backgroundColor: 'rgba(255,255,255,0.05)', borderRadius: 20, paddingVertical: 10, paddingHorizontal: 24, marginBottom: 15, alignItems: 'center' },
   umbrellaItem: { flex: 1, alignItems: 'center' },
   dividerVertical: { width: 1, height: 35, backgroundColor: 'rgba(255,255,255,0.1)' },
   umbrellaLabel: { color: 'rgba(255,255,255,0.5)', fontSize: 12, marginTop: 4 },
   umbrellaValue: { fontSize: 15, fontWeight: '600', marginTop: 2 },
+  
   rainSection: { marginBottom: 35 },
   rainSectionPad: { marginBottom: 30 },
+  rainSectionPadSmall: { marginBottom: 10 },
   sectionLabel: { color: 'rgba(255,255,255,0.5)', fontSize: 14, fontWeight: '600' },
   timelineContainer: { marginTop: 15 },
   barsContainer: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-end', marginBottom: 10 },
@@ -236,7 +242,9 @@ const styles = StyleSheet.create({
   boundaryLabel: { color: 'rgba(255,255,255,0.2)', fontSize: 10 },
   boundaryTimeHighlight: { color: '#FFF', fontSize: 10, fontWeight: '700' },
   boundaryLabelHighlight: { color: 'rgba(255,255,255,0.5)', fontSize: 10, fontWeight: '700' },
+  
   forecastSection: { marginBottom: 35 },
+  forecastSectionSmall: { marginBottom: 10 },
   forecastTitle: { color: '#FFF', fontSize: 18, fontWeight: '700', marginBottom: 20 },
   forecastDay: { alignItems: 'center', marginRight: 28 },
   forecastDayPad: { alignItems: 'center', flex: 1 },
@@ -244,8 +252,11 @@ const styles = StyleSheet.create({
   dayName: { color: '#FFF', fontSize: 16, fontWeight: '600' },
   dayDateText: { color: 'rgba(255,255,255,0.4)', fontSize: 12, marginTop: 2 },
   dayIcon: { width: 44, height: 44, marginVertical: 10 },
+  dayIconPadSmall: { width: 32, height: 32, marginVertical: 5 },
   maxTemp: { color: '#FFF', fontSize: 16, fontWeight: '600' },
   minTempText: { color: 'rgba(255,255,255,0.4)', fontSize: 16, fontWeight: '600' },
+  
   footer: { marginTop: 'auto', paddingBottom: 30, alignItems: 'center' },
+  footerSmall: { marginTop: 'auto', paddingBottom: 10, alignItems: 'center' },
   creditText: { color: 'rgba(255,255,255,0.3)', fontSize: 11 },
 });
