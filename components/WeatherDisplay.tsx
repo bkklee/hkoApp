@@ -22,6 +22,7 @@ export const WeatherDisplay: React.FC<WeatherDisplayProps> = ({
   
   const { width, height } = useWindowDimensions();
   const isPad = Platform.OS === 'ios' && Platform.isPad && (width >= 768 || height >= 768);
+  const contentWidth = isPad ? Math.min(width * 0.85, 800) : width;
   
   const pulseAnim = useRef(new Animated.Value(1)).current;
   const [now, setNow] = useState(new Date());
@@ -54,8 +55,23 @@ export const WeatherDisplay: React.FC<WeatherDisplayProps> = ({
     return `${timeStr.slice(8, 10)}:${timeStr.slice(10, 12)}`;
   };
 
+  const formatNowTime = (d: Date) => {
+    return `${d.getHours().toString().padStart(2, '0')}:${d.getMinutes().toString().padStart(2, '0')}`;
+  };
+
+  const getRelativeMins = (targetStr: string) => {
+    if (!targetStr) return null;
+    const year = parseInt(targetStr.slice(0, 4)), month = parseInt(targetStr.slice(4, 6)) - 1, day = parseInt(targetStr.slice(6, 8));
+    const hours = parseInt(targetStr.slice(8, 10)), mins = parseInt(targetStr.slice(10, 12));
+    const targetDate = new Date(year, month, day, hours, mins);
+    const diffMins = Math.ceil((targetDate.getTime() - now.getTime()) / 60000);
+    if (diffMins <= 0) return '已過';
+    return `${diffMins}m`;
+  };
+
   const renderContent = () => (
     <>
+      {/* Header */}
       <View style={isPad ? styles.headerPad : styles.header}>
         <View style={styles.locationRow}>
           {isUserLocation && <Ionicons name="navigate-sharp" size={isPad ? 18 : 14} color={mainColor === '#000000' ? '#FFF' : mainColor} style={{ marginRight: 6 }} />}
@@ -68,11 +84,16 @@ export const WeatherDisplay: React.FC<WeatherDisplayProps> = ({
         )}
       </View>
 
+      {/* Hero Section */}
       <View style={isPad ? styles.tempHeroPad : styles.tempHero}>
         <Text style={isPad ? styles.mainTempPad : styles.mainTemp}>{Math.round(temp)}<Text style={styles.degreeUnit}>°C</Text></Text>
-        <Text style={isPad ? styles.conditionTextPad : styles.conditionText}>{condition}</Text>
+        <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: isPad ? 'center' : 'flex-start' }}>
+          <Text style={isPad ? styles.conditionTextPad : styles.conditionText}>{condition}</Text>
+          <Text style={styles.dataTimeText}> • {formatShortTime(time)} 更新</Text>
+        </View>
       </View>
 
+      {/* Umbrella Section */}
       <View style={isPad ? styles.umbrellaSectionPad : styles.umbrellaSection}>
         <View style={styles.umbrellaItem}>
            <Ionicons name="umbrella" size={isPad ? 24 : 20} color={anyRainInTwoHours ? "#40C4FF" : "rgba(255,255,255,0.15)"} />
@@ -87,32 +108,45 @@ export const WeatherDisplay: React.FC<WeatherDisplayProps> = ({
         </View>
       </View>
 
+      {/* Rain Section with Timeline Labels */}
       <View style={isPad ? styles.rainSectionPad : styles.rainSection}>
         <Text style={styles.sectionLabel}>未來兩小時降雨預測 (mm)</Text>
-        <View style={[styles.barsContainer, { height: isPad ? 90 : 70, marginTop: isPad ? 10 : 15 }]}>
-          {rainfall.slice(0,4).map((item, i) => (
-            <View key={i} style={{ width: isPad ? 100 : 60, alignItems: 'center' }}>
-              <Text style={styles.barValueText}>{item.amount >= 0.05 ? item.amount.toFixed(1) : '0'}</Text>
-              <View style={[styles.continuousBar, { width: isPad ? 80 : 50, height: Math.max(4, Math.min(item.amount * (isPad ? 35 : 35), isPad ? 90 : 70)), backgroundColor: item.amount >= 0.05 ? mainColor : 'rgba(255,255,255,0.05)' }]} />
-              {isPad && <Text style={styles.barTimeText}>{formatShortTime(item.endTime)}</Text>}
-            </View>
-          ))}
+        <View style={styles.timelineContainer}>
+          <View style={[styles.barsContainer, { height: isPad ? 90 : 70 }]}>
+            {rainfall.slice(0,4).map((item, i) => (
+              <View key={i} style={{ width: isPad ? 100 : 60, alignItems: 'center' }}>
+                <Text style={styles.barValueText}>{item.amount >= 0.05 ? item.amount.toFixed(1) : '0'}</Text>
+                <View style={[styles.continuousBar, { width: isPad ? 80 : 50, height: Math.max(4, Math.min(item.amount * (isPad ? 35 : 35), isPad ? 90 : 70)), backgroundColor: item.amount >= 0.05 ? mainColor : 'rgba(255,255,255,0.05)' }]} />
+              </View>
+            ))}
+          </View>
+          <View style={styles.boundaryContainer}>
+             <View style={styles.boundaryMark}>
+                <Text style={styles.boundaryTimeHighlight}>{formatNowTime(now)}</Text>
+                <Text style={styles.boundaryLabelHighlight}>現在</Text>
+             </View>
+             {rainfall.slice(0,4).map((item, i) => (
+               <View key={i} style={styles.boundaryMark}>
+                  <Text style={styles.boundaryTime}>{formatShortTime(item.endTime)}</Text>
+                  <Text style={styles.boundaryLabel}>{getRelativeMins(item.endTime)}</Text>
+               </View>
+             ))}
+          </View>
         </View>
       </View>
 
+      {/* Forecast Section */}
       <View style={styles.forecastSection}>
         <Text style={styles.forecastTitle}>九日天氣預報</Text>
         <ScrollView horizontal showsHorizontalScrollIndicator={false}>
           {forecast?.map((day, i) => (
             <View key={i} style={styles.forecastDay}>
               <Text style={styles.dayName}>{day.week.replace('星期', '')}</Text>
-              <Text style={{ color: 'rgba(255,255,255,0.4)', fontSize: 12, marginTop: 2 }}>
-                {day.forecastDate.slice(6, 8)}/{day.forecastDate.slice(4, 6)}
-              </Text>
+              <Text style={styles.dayDateText}>{day.forecastDate.slice(6, 8)}/{day.forecastDate.slice(4, 6)}</Text>
               <Image source={{ uri: `https://www.hko.gov.hk/images/HKOWxIconOutline/pic${day.ForecastIcon}.png` }} style={styles.dayIcon} />
               <View style={{ alignItems: 'center' }}>
                 <Text style={styles.maxTemp}>{day.forecastMaxtemp.value}°</Text>
-                <Text style={[styles.maxTemp, { color: 'rgba(255,255,255,0.4)', fontSize: 14 }]}>{day.forecastMintemp.value}°</Text>
+                <Text style={styles.minTempText}>{day.forecastMintemp.value}°</Text>
               </View>
             </View>
           ))}
@@ -148,21 +182,20 @@ const styles = StyleSheet.create({
   
   header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 },
   headerPad: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 15 },
-  
   locationRow: { flexDirection: 'row', alignItems: 'center' },
   stationName: { color: '#FFF', fontSize: 20, fontWeight: '800' },
   stationNamePad: { color: '#FFF', fontSize: 32, fontWeight: '900' },
-  
   warningBadge: { paddingHorizontal: 8, paddingVertical: 4, borderRadius: 4, borderWidth: 1 },
   warningBadgeText: { fontSize: 10, fontWeight: '900' },
   
   tempHero: { marginBottom: 25 },
-  tempHeroPad: { marginBottom: 20 },
+  tempHeroPad: { marginBottom: 20, alignItems: 'center' },
   mainTemp: { color: '#FFF', fontSize: 72, fontWeight: '200' },
   mainTempPad: { color: '#FFF', fontSize: 90, fontWeight: '100' },
   degreeUnit: { fontSize: 28 },
   conditionText: { color: 'rgba(255,255,255,0.7)', fontSize: 22 },
   conditionTextPad: { color: 'rgba(255,255,255,0.7)', fontSize: 24 },
+  dataTimeText: { color: 'rgba(255,255,255,0.3)', fontSize: 12, marginTop: 4 },
   
   umbrellaSection: { flexDirection: 'row', backgroundColor: 'rgba(255,255,255,0.05)', borderRadius: 16, padding: 16, marginBottom: 25, alignItems: 'center' },
   umbrellaSectionPad: { flexDirection: 'row', backgroundColor: 'rgba(255,255,255,0.05)', borderRadius: 20, paddingVertical: 16, paddingHorizontal: 24, marginBottom: 30, alignItems: 'center' },
@@ -173,18 +206,27 @@ const styles = StyleSheet.create({
   
   rainSection: { marginBottom: 35 },
   rainSectionPad: { marginBottom: 30 },
-  sectionLabel: { color: 'rgba(255,255,255,0.5)', fontSize: 14, fontWeight: '600' },
+  sectionLabel: { color: 'rgba(255,255,255,0.5)', fontSize: 14, fontWeight: '600', marginBottom: 10 },
+  timelineContainer: { marginTop: 5 },
   barsContainer: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-end' },
   barValueText: { fontSize: 10, marginBottom: 4, color: '#666' },
-  barTimeText: { fontSize: 10, marginTop: 8, color: '#444' },
   continuousBar: { borderRadius: 4 },
+  
+  boundaryContainer: { flexDirection: 'row', justifyContent: 'space-between', marginTop: 10 },
+  boundaryMark: { alignItems: 'center', width: 60 },
+  boundaryTime: { color: 'rgba(255,255,255,0.3)', fontSize: 10 },
+  boundaryLabel: { color: 'rgba(255,255,255,0.2)', fontSize: 10 },
+  boundaryTimeHighlight: { color: '#FFF', fontSize: 10, fontWeight: '700' },
+  boundaryLabelHighlight: { color: 'rgba(255,255,255,0.5)', fontSize: 10, fontWeight: '700' },
   
   forecastSection: { marginBottom: 35 },
   forecastTitle: { color: '#FFF', fontSize: 18, fontWeight: '700', marginBottom: 20 },
   forecastDay: { alignItems: 'center', marginRight: 28 },
   dayName: { color: '#FFF', fontSize: 16, fontWeight: '600' },
+  dayDateText: { color: 'rgba(255,255,255,0.4)', fontSize: 12, marginTop: 2 },
   dayIcon: { width: 44, height: 44, marginVertical: 10 },
   maxTemp: { color: '#FFF', fontSize: 16, fontWeight: '600' },
+  minTempText: { color: 'rgba(255,255,255,0.4)', fontSize: 14 },
   
   footer: { marginTop: 'auto', paddingBottom: 30, alignItems: 'center' },
   creditText: { color: 'rgba(255,255,255,0.3)', fontSize: 11 },
