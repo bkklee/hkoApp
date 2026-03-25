@@ -203,7 +203,7 @@ const styles = StyleSheet.create({
   degreeUnit: { fontSize: 28 },
   conditionText: { color: 'rgba(255,255,255,0.8)', fontSize: 22 },
   conditionTextPad: { color: 'rgba(255,255,255,0.8)', fontSize: 24 },
-  dataTimeText: { color: 'rgba(255,255,255,0.5)', fontSize: 13, fontWeight: '400' },
+  dataTimeText: { color: 'rgba(255,255,255,0.3)', fontSize: 13, fontWeight: '400' },
   umbrellaSection: { flexDirection: 'row', backgroundColor: 'rgba(255,255,255,0.05)', borderRadius: 16, padding: 16, marginBottom: 25, alignItems: 'center' },
   umbrellaSectionPad: { flexDirection: 'row', backgroundColor: 'rgba(255,255,255,0.05)', borderRadius: 20, paddingVertical: 16, paddingHorizontal: 24, marginBottom: 30, alignItems: 'center' },
   umbrellaItem: { flex: 1, alignItems: 'center' },
