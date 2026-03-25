@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { View, Text, StyleSheet, Dimensions, Image, ScrollView, Animated } from 'react-native';
+import { View, Text, StyleSheet, Dimensions, Image, ScrollView, Animated, useWindowDimensions, Platform } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import { Ionicons } from '@expo/vector-icons';
 import { ForecastData, RainfallNowcast } from '../services/weather';
@@ -16,11 +16,13 @@ interface WeatherDisplayProps {
   longTermLabel?: string;
 }
 
-const { width } = Dimensions.get('window');
-
 export const WeatherDisplay: React.FC<WeatherDisplayProps> = ({ 
   station, temp, time, condition, forecast, rainfall = [], isUserLocation, suggestUmbrellaLongTerm, longTermLabel = '今日' 
 }) => {
+  
+  const { width, height } = useWindowDimensions();
+  const isPad = Platform.OS === 'ios' && (width >= 768 || height >= 768);
+  const contentWidth = isPad ? Math.min(width * 0.85, 800) : width - 40;
   
   const pulseAnim = useRef(new Animated.Value(1)).current;
   const [now, setNow] = useState(new Date());
@@ -95,150 +97,160 @@ export const WeatherDisplay: React.FC<WeatherDisplayProps> = ({
     return `${diffMins}m`;
   };
 
-  const chartPadding = 10;
+  const chartPadding = isPad ? 20 : 10;
   const numBars = rainfall.length || 4;
-  const gapSize = 8;
-  const chartWidth = width - 40 - (chartPadding * 2);
+  const gapSize = isPad ? 16 : 8;
+  const chartWidth = contentWidth - (chartPadding * 2);
   const barWidth = (chartWidth - (numBars - 1) * gapSize) / numBars;
 
   return (
-    <View style={styles.container}>
+    <View style={styles.outerContainer}>
       <StatusBar style="light" />
-      
-      {/* Header */}
-      <View style={styles.header}>
-        <View style={styles.locationRow}>
-          {isUserLocation && <Ionicons name="navigate-sharp" size={14} color={mainColor === '#000000' ? '#FFF' : mainColor} style={{ marginRight: 6 }} />}
-          <Text style={styles.stationName}>{station}</Text>
-        </View>
-        {status.label !== 'ALL CLEAR' && status.label !== 'RAINING' && (
-          <View style={[styles.warningBadge, { backgroundColor: mainColor, borderColor: status.borderColor || mainColor }]}>
-            <Text style={[styles.warningBadgeText, { color: status.textColor || '#000' }]}>{status.label}</Text>
-          </View>
-        )}
-      </View>
-
-      {/* Hero */}
-      <View style={styles.tempHero}>
-        <Text style={styles.mainTemp}>
-          {Math.round(temp)}
-          <Text style={styles.degreeUnit}>°C</Text>
-        </Text>
-        <Text style={styles.conditionText}>{condition}</Text>
-      </View>
-
-      {/* Umbrella Advice Section */}
-      <View style={styles.umbrellaSection}>
-        <View style={styles.umbrellaItem}>
-           <Ionicons name="umbrella" size={20} color={anyRainInTwoHours ? "#40C4FF" : "rgba(255,255,255,0.15)"} />
-           <Text style={styles.umbrellaLabel}>兩小時內</Text>
-           <Text style={[styles.umbrellaValue, { color: anyRainInTwoHours ? "#40C4FF" : "rgba(255,255,255,0.3)" }]}>
-             {anyRainInTwoHours ? "建議帶傘" : "無須帶傘"}
-           </Text>
-        </View>
-        <View style={styles.dividerVertical} />
-        <View style={styles.umbrellaItem}>
-           <Ionicons name="umbrella" size={20} color={suggestUmbrellaLongTerm ? "#40C4FF" : "rgba(255,255,255,0.15)"} />
-           <Text style={styles.umbrellaLabel}>{longTermLabel}</Text>
-           <Text style={[styles.umbrellaValue, { color: suggestUmbrellaLongTerm ? "#40C4FF" : "rgba(255,255,255,0.3)" }]}>
-             {suggestUmbrellaLongTerm ? "建議帶傘" : "無須帶傘"}
-           </Text>
-        </View>
-      </View>
-
-      {/* Rain Timeline */}
-      <View style={styles.rainSection}>
-        <View style={styles.sectionHeader}>
-          <Text style={styles.sectionLabel}>未來兩小時降雨預測 (mm)</Text>
-        </View>
+      <View style={[styles.container, { width: contentWidth }]}>
         
-        <View style={[styles.timelineContainer, { paddingHorizontal: chartPadding }]}>
-           <View style={[styles.barsContainer, { width: chartWidth }]}>
-            {rainfall.map((item, i) => (
-              <View key={i} style={{ width: barWidth, alignItems: 'center' }}>
-                <Text style={[styles.barValueText, { color: item.amount >= 0.05 ? (mainColor === '#000000' ? '#FFF' : mainColor) : 'rgba(255,255,255,0.2)' }]}>
-                  {item.amount >= 0.05 ? `${item.amount.toFixed(1)}` : '0'}
-                </Text>
-                <Animated.View 
-                  style={[
-                    styles.continuousBar, 
-                    { 
-                      width: barWidth,
-                      height: Math.max(4, Math.min(item.amount * 35, 70)),
-                      backgroundColor: item.amount >= 0.05 ? (mainColor === '#000000' ? '#FFF' : mainColor) : 'rgba(255,255,255,0.05)',
-                      transform: i === 0 && item.amount >= 0.05 ? [{ scaleY: pulseAnim }] : []
-                    }
-                  ]} 
-                />
-              </View>
-            ))}
+        {/* Header */}
+        <View style={styles.header}>
+          <View style={styles.locationRow}>
+            {isUserLocation && <Ionicons name="navigate-sharp" size={isPad ? 18 : 14} color={mainColor === '#000000' ? '#FFF' : mainColor} style={{ marginRight: 8 }} />}
+            <Text style={[styles.stationName, isPad && styles.stationNamePad]}>{station}</Text>
+          </View>
+          {status.label !== 'ALL CLEAR' && status.label !== 'RAINING' && (
+            <View style={[styles.warningBadge, { backgroundColor: mainColor, borderColor: status.borderColor || mainColor }, isPad && styles.warningBadgePad]}>
+              <Text style={[styles.warningBadgeText, { color: status.textColor || '#000' }, isPad && styles.warningBadgeTextPad]}>{status.label}</Text>
+            </View>
+          )}
+        </View>
+
+        {/* Hero Section */}
+        <View style={[styles.heroLayout, isPad && styles.heroLayoutPad]}>
+          <View style={styles.tempHero}>
+            <Text style={[styles.mainTemp, isPad && styles.mainTempPad]}>
+              {Math.round(temp)}
+              <Text style={[styles.degreeUnit, isPad && styles.degreeUnitPad]}>°C</Text>
+            </Text>
+            <Text style={[styles.conditionText, isPad && styles.conditionTextPad]}>{condition}</Text>
           </View>
 
-          <View style={[styles.boundaryContainer, { width: chartWidth }]}>
-             <View style={[styles.boundaryMark, { left: 0, width: 60, alignItems: 'flex-start' }]}>
-                <Text style={styles.boundaryTimeHighlight}>{formatNowTime(now)}</Text>
-                <Text style={styles.boundaryLabelHighlight}>現在</Text>
-             </View>
-             {rainfall.map((item, i) => {
-               const isLast = i === rainfall.length - 1;
-               // Position label at the center of the gap between bars
-               const pos = isLast ? chartWidth : (i + 1) * barWidth + (i + 0.5) * gapSize;
-               return (
-                 <View key={i} style={[styles.boundaryMark, { 
-                   left: isLast ? undefined : pos - 30,
-                   right: isLast ? 0 : undefined,
-                   width: 60,
-                   alignItems: isLast ? 'flex-end' : 'center'
-                 }]}>
-                    <Text style={styles.boundaryTime}>{formatShortTime(item.endTime)}</Text>
-                    <Text style={styles.boundaryLabel}>{getRelativeMins(item.endTime)}</Text>
-                 </View>
-               );
-             })}
+          {/* Umbrella Advice Section */}
+          <View style={[styles.umbrellaSection, isPad && styles.umbrellaSectionPad]}>
+            <View style={styles.umbrellaItem}>
+               <Ionicons name="umbrella" size={isPad ? 32 : 20} color={anyRainInTwoHours ? "#40C4FF" : "rgba(255,255,255,0.15)"} />
+               <Text style={[styles.umbrellaLabel, isPad && styles.umbrellaLabelPad]}>兩小時內</Text>
+               <Text style={[styles.umbrellaValue, { color: anyRainInTwoHours ? "#40C4FF" : "rgba(255,255,255,0.3)" }, isPad && styles.umbrellaValuePad]}>
+                 {anyRainInTwoHours ? "建議帶傘" : "無須帶傘"}
+               </Text>
+            </View>
+            <View style={styles.dividerVertical} />
+            <View style={styles.umbrellaItem}>
+               <Ionicons name="umbrella" size={isPad ? 32 : 20} color={suggestUmbrellaLongTerm ? "#40C4FF" : "rgba(255,255,255,0.15)"} />
+               <Text style={[styles.umbrellaLabel, isPad && styles.umbrellaLabelPad]}>{longTermLabel}</Text>
+               <Text style={[styles.umbrellaValue, { color: suggestUmbrellaLongTerm ? "#40C4FF" : "rgba(255,255,255,0.3)" }, isPad && styles.umbrellaValuePad]}>
+                 {suggestUmbrellaLongTerm ? "建議帶傘" : "無須帶傘"}
+               </Text>
+            </View>
           </View>
         </View>
-      </View>
 
-      {/* Forecast */}
-      <View style={styles.forecastSection}>
-        <Text style={styles.forecastTitle}>九日天氣預報</Text>
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.forecastScroll}>
-          {forecast?.map((day, i) => (
-            <View key={i} style={styles.forecastDay}>
-              <Text style={styles.dayName}>{getDayLabel(day.forecastDate, day.week)}</Text>
-              <Text style={styles.dayDate}>{day.forecastDate.slice(6, 8)}/{day.forecastDate.slice(4, 6)}</Text>
-              <Image 
-                source={{ uri: `https://www.hko.gov.hk/images/HKOWxIconOutline/pic${day.ForecastIcon}.png` }} 
-                style={styles.dayIcon}
-              />
-              <View style={styles.dayTempCol}>
-                   <Text style={styles.maxTemp}>{day.forecastMaxtemp.value}°</Text>
-                   <Text style={styles.minTemp}>{day.forecastMintemp.value}°</Text>
+        {/* Body Layout: On iPad we can use a row if width is large, but for now optimized single column is safer for review */}
+        <View style={styles.bodyContainer}>
+          {/* Rain Timeline */}
+          <View style={[styles.rainSection, isPad && styles.rainSectionPad]}>
+            <View style={styles.sectionHeader}>
+              <Text style={[styles.sectionLabel, isPad && styles.sectionLabelPad]}>未來兩小時降雨預測 (mm)</Text>
+            </View>
+            
+            <View style={[styles.timelineContainer, { paddingHorizontal: chartPadding }]}>
+               <View style={[styles.barsContainer, { width: chartWidth, height: isPad ? 120 : 70 }]}>
+                {rainfall.map((item, i) => (
+                  <View key={i} style={{ width: barWidth, alignItems: 'center' }}>
+                    <Text style={[styles.barValueText, { color: item.amount >= 0.05 ? (mainColor === '#000000' ? '#FFF' : mainColor) : 'rgba(255,255,255,0.2)' }, isPad && styles.barValueTextPad]}>
+                      {item.amount >= 0.05 ? `${item.amount.toFixed(1)}` : '0'}
+                    </Text>
+                    <Animated.View 
+                      style={[
+                        styles.continuousBar, 
+                        { 
+                          width: barWidth,
+                          height: Math.max(4, Math.min(item.amount * (isPad ? 60 : 35), isPad ? 120 : 70)),
+                          backgroundColor: item.amount >= 0.05 ? (mainColor === '#000000' ? '#FFF' : mainColor) : 'rgba(255,255,255,0.05)',
+                          transform: i === 0 && item.amount >= 0.05 ? [{ scaleY: pulseAnim }] : []
+                        }
+                      ]} 
+                    />
+                  </View>
+                ))}
+              </View>
+
+              <View style={[styles.boundaryContainer, { width: chartWidth }]}>
+                 <View style={[styles.boundaryMark, { left: 0, width: 80, alignItems: 'flex-start' }]}>
+                    <Text style={[styles.boundaryTimeHighlight, isPad && styles.boundaryTimePad]}>{formatNowTime(now)}</Text>
+                    <Text style={[styles.boundaryLabelHighlight, isPad && styles.boundaryLabelPad]}>現在</Text>
+                 </View>
+                 {rainfall.map((item, i) => {
+                   const isLast = i === rainfall.length - 1;
+                   const pos = isLast ? chartWidth : (i + 1) * barWidth + (i + 0.5) * gapSize;
+                   return (
+                     <View key={i} style={[styles.boundaryMark, { 
+                       left: isLast ? undefined : pos - 40,
+                       right: isLast ? 0 : undefined,
+                       width: 80,
+                       alignItems: isLast ? 'flex-end' : 'center'
+                     }]}>
+                        <Text style={[styles.boundaryTime, isPad && styles.boundaryTimePad]}>{formatShortTime(item.endTime)}</Text>
+                        <Text style={[styles.boundaryLabel, isPad && styles.boundaryLabelPad]}>{getRelativeMins(item.endTime)}</Text>
+                     </View>
+                   );
+                 })}
               </View>
             </View>
-          ))}
-        </ScrollView>
-      </View>
+          </View>
 
-      <View style={styles.footer}>
-        <Text style={styles.creditText}>Data by Hong Kong Observatory</Text>
+          {/* Forecast */}
+          <View style={styles.forecastSection}>
+            <Text style={[styles.forecastTitle, isPad && styles.forecastTitlePad]}>九日天氣預報</Text>
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.forecastScroll} contentContainerStyle={isPad && { paddingBottom: 20 }}>
+              {forecast?.map((day, i) => (
+                <View key={i} style={[styles.forecastDay, isPad && styles.forecastDayPad]}>
+                  <Text style={[styles.dayName, isPad && styles.dayNamePad]}>{getDayLabel(day.forecastDate, day.week)}</Text>
+                  <Text style={[styles.dayDate, isPad && styles.dayDatePad]}>{day.forecastDate.slice(6, 8)}/{day.forecastDate.slice(4, 6)}</Text>
+                  <Image 
+                    source={{ uri: `https://www.hko.gov.hk/images/HKOWxIconOutline/pic${day.ForecastIcon}.png` }} 
+                    style={[styles.dayIcon, isPad && styles.dayIconPad]}
+                  />
+                  <View style={styles.dayTempCol}>
+                       <Text style={[styles.maxTemp, isPad && styles.dayTempPad]}>{day.forecastMaxtemp.value}°</Text>
+                       <Text style={[styles.minTemp, isPad && styles.dayTempPad]}>{day.forecastMintemp.value}°</Text>
+                  </View>
+                </View>
+              ))}
+            </ScrollView>
+          </View>
+        </View>
+
+        <View style={styles.footer}>
+          <Text style={[styles.creditText, isPad && styles.creditTextPad]}>Data by Hong Kong Observatory</Text>
+        </View>
       </View>
     </View>
   );
 };
 
 const styles = StyleSheet.create({
-  container: {
+  outerContainer: {
     flex: 1,
     backgroundColor: '#000',
-    paddingTop: 90,
+    alignItems: 'center',
+  },
+  container: {
+    flex: 1,
+    paddingTop: Platform.OS === 'ios' ? 90 : 50,
     paddingHorizontal: 20,
   },
   header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 20,
+    marginBottom: 30,
   },
   locationRow: {
     flexDirection: 'row',
@@ -246,43 +258,75 @@ const styles = StyleSheet.create({
   },
   stationName: {
     color: '#FFF',
-    fontSize: 20,
+    fontSize: 22,
     fontWeight: '800',
     letterSpacing: -0.5,
   },
+  stationNamePad: {
+    fontSize: 32,
+  },
   warningBadge: {
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 4,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 6,
     borderWidth: 1,
   },
+  warningBadgePad: {
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+  },
   warningBadgeText: {
-    fontSize: 10,
+    fontSize: 12,
     fontWeight: '900',
   },
+  warningBadgeTextPad: {
+    fontSize: 18,
+  },
+  heroLayout: {
+    marginBottom: 30,
+  },
+  heroLayoutPad: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 50,
+  },
   tempHero: {
-    marginBottom: 25,
+    marginBottom: 10,
   },
   mainTemp: {
     color: '#FFF',
-    fontSize: 72,
+    fontSize: 84,
     fontWeight: '200',
   },
+  mainTempPad: {
+    fontSize: 120,
+  },
   degreeUnit: {
-    fontSize: 28,
+    fontSize: 32,
+  },
+  degreeUnitPad: {
+    fontSize: 48,
   },
   conditionText: {
     color: 'rgba(255,255,255,0.7)',
-    fontSize: 22,
+    fontSize: 24,
     fontWeight: '400',
+  },
+  conditionTextPad: {
+    fontSize: 36,
   },
   umbrellaSection: {
     flexDirection: 'row',
-    backgroundColor: 'rgba(255,255,255,0.05)',
-    borderRadius: 16,
-    padding: 16,
-    marginBottom: 25,
+    backgroundColor: 'rgba(255,255,255,0.07)',
+    borderRadius: 20,
+    padding: 20,
     alignItems: 'center',
+    minWidth: 280,
+  },
+  umbrellaSectionPad: {
+    padding: 30,
+    minWidth: 400,
   },
   umbrellaItem: {
     flex: 1,
@@ -290,29 +334,44 @@ const styles = StyleSheet.create({
   },
   dividerVertical: {
     width: 1,
-    height: 35,
+    height: 40,
     backgroundColor: 'rgba(255,255,255,0.1)',
   },
   umbrellaLabel: {
     color: 'rgba(255,255,255,0.5)',
-    fontSize: 12,
-    marginTop: 4,
+    fontSize: 13,
+    marginTop: 6,
+  },
+  umbrellaLabelPad: {
+    fontSize: 18,
   },
   umbrellaValue: {
-    fontSize: 15,
+    fontSize: 16,
     fontWeight: '600',
-    marginTop: 2,
+    marginTop: 4,
+  },
+  umbrellaValuePad: {
+    fontSize: 22,
+  },
+  bodyContainer: {
+    flex: 1,
   },
   rainSection: {
-    marginBottom: 35,
+    marginBottom: 40,
+  },
+  rainSectionPad: {
+    marginBottom: 60,
   },
   sectionHeader: {
-    marginBottom: 15,
+    marginBottom: 20,
   },
   sectionLabel: {
     color: 'rgba(255,255,255,0.5)',
-    fontSize: 14,
+    fontSize: 15,
     fontWeight: '600',
+  },
+  sectionLabelPad: {
+    fontSize: 20,
   },
   timelineContainer: {
     marginTop: 10,
@@ -321,49 +380,60 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'flex-end',
-    height: 70,
-    marginBottom: 10,
+    marginBottom: 15,
   },
   barValueText: {
-    fontSize: 10,
-    marginBottom: 4,
+    fontSize: 11,
+    marginBottom: 6,
+  },
+  barValueTextPad: {
+    fontSize: 16,
   },
   continuousBar: {
-    borderRadius: 4,
+    borderRadius: 6,
   },
   boundaryContainer: {
     flexDirection: 'row',
-    height: 45,
+    height: 50,
   },
   boundaryMark: {
     position: 'absolute',
   },
   boundaryTime: {
-    color: 'rgba(255,255,255,0.3)',
-    fontSize: 10,
+    color: 'rgba(255,255,255,0.4)',
+    fontSize: 11,
   },
   boundaryLabel: {
-    color: 'rgba(255,255,255,0.2)',
-    fontSize: 10,
+    color: 'rgba(255,255,255,0.3)',
+    fontSize: 11,
+  },
+  boundaryTimePad: {
+    fontSize: 15,
+  },
+  boundaryLabelPad: {
+    fontSize: 15,
   },
   boundaryTimeHighlight: {
     color: '#FFF',
-    fontSize: 10,
+    fontSize: 11,
     fontWeight: '700',
   },
   boundaryLabelHighlight: {
-    color: 'rgba(255,255,255,0.5)',
-    fontSize: 10,
+    color: 'rgba(255,255,255,0.6)',
+    fontSize: 11,
     fontWeight: '700',
   },
   forecastSection: {
-    marginBottom: 35,
+    marginBottom: 40,
   },
   forecastTitle: {
     color: '#FFF',
-    fontSize: 18,
+    fontSize: 20,
     fontWeight: '700',
-    marginBottom: 20,
+    marginBottom: 25,
+  },
+  forecastTitlePad: {
+    fontSize: 28,
   },
   forecastScroll: {
     marginHorizontal: -20,
@@ -371,43 +441,62 @@ const styles = StyleSheet.create({
   },
   forecastDay: {
     alignItems: 'center',
-    marginRight: 28,
+    marginRight: 32,
+  },
+  forecastDayPad: {
+    marginRight: 50,
   },
   dayName: {
     color: '#FFF',
-    fontSize: 16,
+    fontSize: 17,
     fontWeight: '600',
+  },
+  dayNamePad: {
+    fontSize: 22,
   },
   dayDate: {
     color: 'rgba(255,255,255,0.4)',
-    fontSize: 12,
-    marginTop: 2,
+    fontSize: 13,
+    marginTop: 4,
+  },
+  dayDatePad: {
+    fontSize: 16,
   },
   dayIcon: {
-    width: 44,
-    height: 44,
-    marginVertical: 10,
+    width: 48,
+    height: 48,
+    marginVertical: 12,
+  },
+  dayIconPad: {
+    width: 80,
+    height: 80,
   },
   dayTempCol: {
     alignItems: 'center',
   },
+  dayTempPad: {
+    fontSize: 22,
+  },
   maxTemp: {
     color: '#FFF',
-    fontSize: 16,
+    fontSize: 17,
     fontWeight: '600',
   },
   minTemp: {
     color: 'rgba(255,255,255,0.4)',
-    fontSize: 16,
+    fontSize: 17,
     fontWeight: '600',
   },
   footer: {
     marginTop: 'auto',
-    paddingBottom: 30,
+    paddingBottom: 40,
     alignItems: 'center',
   },
   creditText: {
     color: 'rgba(255,255,255,0.3)',
-    fontSize: 11,
+    fontSize: 12,
+  },
+  creditTextPad: {
+    fontSize: 16,
   },
 });
