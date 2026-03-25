@@ -22,7 +22,7 @@ export const WeatherDisplay: React.FC<WeatherDisplayProps> = ({
   
   const { width, height } = useWindowDimensions();
   const isPad = Platform.OS === 'ios' && Platform.isPad && (width >= 768 || height >= 768);
-  const contentWidth = isPad ? Math.min(width * 0.85, 800) : width - 40;
+  const contentWidth = isPad ? Math.min(width * 0.85, 800) : width;
   
   const pulseAnim = useRef(new Animated.Value(1)).current;
   const [now, setNow] = useState(new Date());
@@ -100,7 +100,7 @@ export const WeatherDisplay: React.FC<WeatherDisplayProps> = ({
   const chartPadding = isPad ? 20 : 10;
   const numBars = rainfall.length || 4;
   const gapSize = isPad ? 16 : 8;
-  const chartWidth = contentWidth - (chartPadding * 2);
+  const chartWidth = contentWidth - (isPad ? chartPadding * 2 : 40 + chartPadding * 2);
   const barWidth = (chartWidth - (numBars - 1) * gapSize) / numBars;
 
   return (
@@ -108,7 +108,6 @@ export const WeatherDisplay: React.FC<WeatherDisplayProps> = ({
       <StatusBar style="light" />
       <View style={[styles.container, { width: contentWidth }]}>
         
-        {/* Header */}
         <View style={styles.header}>
           <View style={styles.locationRow}>
             {isUserLocation && <Ionicons name="navigate-sharp" size={isPad ? 18 : 14} color={mainColor === '#000000' ? '#FFF' : mainColor} style={{ marginRight: 6 }} />}
@@ -121,7 +120,6 @@ export const WeatherDisplay: React.FC<WeatherDisplayProps> = ({
           )}
         </View>
 
-        {/* Hero Section */}
         <View style={[styles.heroLayout, isPad && styles.heroLayoutPad]}>
           <View style={styles.tempHero}>
             <Text style={[styles.mainTemp, isPad && styles.mainTempPad]}>
@@ -131,7 +129,6 @@ export const WeatherDisplay: React.FC<WeatherDisplayProps> = ({
             <Text style={[styles.conditionText, isPad && styles.conditionTextPad]}>{condition}</Text>
           </View>
 
-          {/* Umbrella Advice Section */}
           <View style={[styles.umbrellaSection, isPad && styles.umbrellaSectionPad]}>
             <View style={styles.umbrellaItem}>
                <Ionicons name="umbrella" size={isPad ? 32 : 20} color={anyRainInTwoHours ? "#40C4FF" : "rgba(255,255,255,0.15)"} />
@@ -152,7 +149,6 @@ export const WeatherDisplay: React.FC<WeatherDisplayProps> = ({
         </View>
 
         <View style={styles.bodyContainer}>
-          {/* Rain Timeline */}
           <View style={[styles.rainSection, isPad && styles.rainSectionPad]}>
             <View style={styles.sectionHeader}>
               <Text style={[styles.sectionLabel, isPad && styles.sectionLabelPad]}>未來兩小時降雨預測 (mm)</Text>
@@ -204,7 +200,6 @@ export const WeatherDisplay: React.FC<WeatherDisplayProps> = ({
             </View>
           </View>
 
-          {/* Forecast */}
           <View style={styles.forecastSection}>
             <Text style={[styles.forecastTitle, isPad && styles.forecastTitlePad]}>九日天氣預報</Text>
             <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.forecastScroll}>
@@ -217,8 +212,8 @@ export const WeatherDisplay: React.FC<WeatherDisplayProps> = ({
                     style={[styles.dayIcon, isPad && styles.dayIconPad]}
                   />
                   <View style={styles.dayTempCol}>
-                       <Text style={[styles.maxTemp, isPad && styles.dayTempPad]}>{day.forecastMaxtemp.value}°</Text>
-                       <Text style={[styles.minTemp, isPad && styles.dayTempPad]}>{day.forecastMintemp.value}°</Text>
+                       <Text style={[styles.maxTemp, isPad && styles.maxTempPad]}>{day.forecastMaxtemp.value}°</Text>
+                       <Text style={[styles.minTemp, isPad && styles.minTempPad]}>{day.forecastMintemp.value}°</Text>
                   </View>
                 </View>
               ))}
@@ -238,18 +233,18 @@ const styles = StyleSheet.create({
   outerContainer: {
     flex: 1,
     backgroundColor: '#000',
-    alignItems: 'center',
+    alignItems: 'center', // This is for iPad centering
   },
   container: {
     flex: 1,
-    paddingTop: 90, // REVERTED TO ORIGINAL
-    paddingHorizontal: 20,
+    paddingTop: 90,
+    paddingHorizontal: 20, // ORIGINAL VALUE
   },
   header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 20, // REVERTED TO ORIGINAL
+    marginBottom: 20,
   },
   locationRow: {
     flexDirection: 'row',
@@ -282,7 +277,7 @@ const styles = StyleSheet.create({
     fontSize: 18,
   },
   heroLayout: {
-    marginBottom: 25, // REVERTED TO ORIGINAL
+    marginBottom: 25,
   },
   heroLayoutPad: {
     flexDirection: 'row',
@@ -320,7 +315,7 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(255,255,255,0.05)',
     borderRadius: 16,
     padding: 16,
-    marginBottom: 25, // REVERTED TO ORIGINAL
+    marginBottom: 25,
     alignItems: 'center',
   },
   umbrellaSectionPad: {
@@ -358,13 +353,13 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   rainSection: {
-    marginBottom: 35, // REVERTED TO ORIGINAL
+    marginBottom: 35,
   },
   rainSectionPad: {
     marginBottom: 60,
   },
   sectionHeader: {
-    marginBottom: 15, // REVERTED TO ORIGINAL
+    marginBottom: 15,
   },
   sectionLabel: {
     color: 'rgba(255,255,255,0.5)',
@@ -425,13 +420,13 @@ const styles = StyleSheet.create({
     fontWeight: '700',
   },
   forecastSection: {
-    marginBottom: 35, // REVERTED TO ORIGINAL
+    marginBottom: 35,
   },
   forecastTitle: {
     color: '#FFF',
     fontSize: 18,
     fontWeight: '700',
-    marginBottom: 20, // REVERTED TO ORIGINAL
+    marginBottom: 20,
   },
   forecastTitlePad: {
     fontSize: 28,
@@ -442,7 +437,7 @@ const styles = StyleSheet.create({
   },
   forecastDay: {
     alignItems: 'center',
-    marginRight: 28, // REVERTED TO ORIGINAL
+    marginRight: 28,
   },
   forecastDayPad: {
     marginRight: 50,
@@ -493,7 +488,7 @@ const styles = StyleSheet.create({
   },
   footer: {
     marginTop: 'auto',
-    paddingBottom: 30, // REVERTED TO ORIGINAL
+    paddingBottom: 30,
     alignItems: 'center',
   },
   creditText: {
