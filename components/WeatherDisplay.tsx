@@ -117,7 +117,7 @@ export const WeatherDisplay: React.FC<WeatherDisplayProps> = ({
       </View>
 
       <View style={styles.footer}>
-        <Text style={styles.creditText}>Data by Hong Kong Observatory • {time}</Text>
+        <Text style={styles.creditText}>Data by Hong Kong Observatory</Text>
       </View>
     </>
   );
