@@ -113,13 +113,13 @@ export const WeatherDisplay: React.FC<WeatherDisplayProps> = ({
 
       <View style={isPad ? (isLandscape ? styles.umbrellaSectionPadSmall : styles.umbrellaSectionPad) : styles.umbrellaSection}>
         <View style={styles.umbrellaItem}>
-           <Ionicons name="umbrella" size={isPad ? 20 : 20} color={anyRainInTwoHours ? "#40C4FF" : "rgba(255,255,255,0.15)"} />
+           <Ionicons name="umbrella" size={isPad ? 24 : 20} color={anyRainInTwoHours ? "#40C4FF" : "rgba(255,255,255,0.15)"} />
            <Text style={styles.umbrellaLabel}>兩小時內</Text>
            <Text style={[styles.umbrellaValue, { color: anyRainInTwoHours ? "#40C4FF" : "rgba(255,255,255,0.3)" }]}>{anyRainInTwoHours ? "建議帶傘" : "無須帶傘"}</Text>
         </View>
         <View style={styles.dividerVertical} />
         <View style={styles.umbrellaItem}>
-           <Ionicons name="umbrella" size={isPad ? 20 : 20} color={suggestUmbrellaLongTerm ? "#40C4FF" : "rgba(255,255,255,0.15)"} />
+           <Ionicons name="umbrella" size={isPad ? 24 : 20} color={suggestUmbrellaLongTerm ? "#40C4FF" : "rgba(255,255,255,0.15)"} />
            <Text style={styles.umbrellaLabel}>{longTermLabel}</Text>
            <Text style={[styles.umbrellaValue, { color: suggestUmbrellaLongTerm ? "#40C4FF" : "rgba(255,255,255,0.3)" }]}>{suggestUmbrellaLongTerm ? "建議帶傘" : "無須帶傘"}</Text>
         </View>
@@ -128,11 +128,11 @@ export const WeatherDisplay: React.FC<WeatherDisplayProps> = ({
       <View style={isPad ? (isLandscape ? styles.rainSectionPadSmall : styles.rainSectionPad) : styles.rainSection}>
         <Text style={styles.sectionLabel}>未來兩小時降雨預測 (mm)</Text>
         <View style={[styles.timelineContainer, { paddingHorizontal: chartPadding }]}>
-           <View style={[styles.barsContainer, { width: chartWidth, height: isPad ? (isLandscape ? 60 : 90) : 70 }]}>
+           <View style={[styles.barsContainer, { width: chartWidth, height: isPad ? (isLandscape ? 80 : 90) : 70 }]}>
             {rainfall.slice(0,4).map((item, i) => (
               <View key={i} style={{ width: barWidth, alignItems: 'center' }}>
                 <Text style={styles.barValueText}>{item.amount >= 0.05 ? item.amount.toFixed(1) : '0'}</Text>
-                <View style={[styles.continuousBar, { width: barWidth, height: Math.max(4, Math.min(item.amount * (isLandscape ? 25 : 35), isPad ? (isLandscape ? 60 : 90) : 70)), backgroundColor: item.amount >= 0.05 ? mainColor : 'rgba(255,255,255,0.05)' }]} />
+                <View style={[styles.continuousBar, { width: barWidth, height: Math.max(4, Math.min(item.amount * (isLandscape ? 30 : 35), isPad ? (isLandscape ? 80 : 90) : 70)), backgroundColor: item.amount >= 0.05 ? mainColor : 'rgba(255,255,255,0.05)' }]} />
               </View>
             ))}
           </View>
@@ -198,10 +198,10 @@ export const WeatherDisplay: React.FC<WeatherDisplayProps> = ({
 const styles = StyleSheet.create({
   outerContainer: { flex: 1, backgroundColor: '#000', alignItems: 'center' },
   iphoneContainer: { flex: 1, width: '100%', paddingTop: 90, paddingHorizontal: 20 },
-  padFitContainer: { flex: 1, paddingBottom: 40, justifyContent: 'space-between' },
+  padFitContainer: { flex: 1, paddingBottom: 40, justifyContent: 'space-around' }, // Changed to space-around for balanced gaps
   
   header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 },
-  headerPad: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 15 },
+  headerPad: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
   locationRow: { flexDirection: 'row', alignItems: 'center' },
   stationName: { color: '#FFF', fontSize: 20, fontWeight: '800' },
   stationNamePad: { color: '#FFF', fontSize: 32, fontWeight: '900' },
@@ -210,19 +210,19 @@ const styles = StyleSheet.create({
   
   tempHero: { marginBottom: 25 },
   tempHeroPad: { marginBottom: 20, alignItems: 'center' },
-  tempHeroPadSmall: { marginBottom: 10, alignItems: 'center' },
+  tempHeroPadSmall: { marginBottom: 5, alignItems: 'center' },
   mainTemp: { color: '#FFF', fontSize: 72, fontWeight: '200' },
   mainTempPad: { color: '#FFF', fontSize: 90, fontWeight: '100' },
-  mainTempPadSmall: { color: '#FFF', fontSize: 70, fontWeight: '100' },
+  mainTempPadSmall: { color: '#FFF', fontSize: 80, fontWeight: '100' },
   degreeUnit: { fontSize: 28 },
   conditionText: { color: 'rgba(255,255,255,0.8)', fontSize: 22 },
   conditionTextPad: { color: 'rgba(255,255,255,0.8)', fontSize: 24 },
-  conditionTextPadSmall: { color: 'rgba(255,255,255,0.8)', fontSize: 20 },
+  conditionTextPadSmall: { color: 'rgba(255,255,255,0.8)', fontSize: 22 },
   dataTimeText: { color: 'rgba(255,255,255,0.3)', fontSize: 13, fontWeight: '400' },
   
   umbrellaSection: { flexDirection: 'row', backgroundColor: 'rgba(255,255,255,0.05)', borderRadius: 16, padding: 16, marginBottom: 25, alignItems: 'center' },
   umbrellaSectionPad: { flexDirection: 'row', backgroundColor: 'rgba(255,255,255,0.05)', borderRadius: 20, paddingVertical: 16, paddingHorizontal: 24, marginBottom: 30, alignItems: 'center' },
-  umbrellaSectionPadSmall: { flexDirection: 'row', backgroundColor: 'rgba(255,255,255,0.05)', borderRadius: 20, paddingVertical: 10, paddingHorizontal: 24, marginBottom: 15, alignItems: 'center' },
+  umbrellaSectionPadSmall: { flexDirection: 'row', backgroundColor: 'rgba(255,255,255,0.05)', borderRadius: 20, paddingVertical: 12, paddingHorizontal: 24, marginBottom: 10, alignItems: 'center' },
   umbrellaItem: { flex: 1, alignItems: 'center' },
   dividerVertical: { width: 1, height: 35, backgroundColor: 'rgba(255,255,255,0.1)' },
   umbrellaLabel: { color: 'rgba(255,255,255,0.5)', fontSize: 12, marginTop: 4 },
@@ -230,7 +230,7 @@ const styles = StyleSheet.create({
   
   rainSection: { marginBottom: 35 },
   rainSectionPad: { marginBottom: 30 },
-  rainSectionPadSmall: { marginBottom: 10 },
+  rainSectionPadSmall: { marginBottom: 15 },
   sectionLabel: { color: 'rgba(255,255,255,0.5)', fontSize: 14, fontWeight: '600' },
   timelineContainer: { marginTop: 15 },
   barsContainer: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-end', marginBottom: 10 },
@@ -244,7 +244,7 @@ const styles = StyleSheet.create({
   boundaryLabelHighlight: { color: 'rgba(255,255,255,0.5)', fontSize: 10, fontWeight: '700' },
   
   forecastSection: { marginBottom: 35 },
-  forecastSectionSmall: { marginBottom: 10 },
+  forecastSectionSmall: { marginBottom: 15 },
   forecastTitle: { color: '#FFF', fontSize: 18, fontWeight: '700', marginBottom: 20 },
   forecastDay: { alignItems: 'center', marginRight: 28 },
   forecastDayPad: { alignItems: 'center', flex: 1 },
@@ -252,11 +252,11 @@ const styles = StyleSheet.create({
   dayName: { color: '#FFF', fontSize: 16, fontWeight: '600' },
   dayDateText: { color: 'rgba(255,255,255,0.4)', fontSize: 12, marginTop: 2 },
   dayIcon: { width: 44, height: 44, marginVertical: 10 },
-  dayIconPadSmall: { width: 32, height: 32, marginVertical: 5 },
+  dayIconPadSmall: { width: 36, height: 32, marginVertical: 5 },
   maxTemp: { color: '#FFF', fontSize: 16, fontWeight: '600' },
   minTempText: { color: 'rgba(255,255,255,0.4)', fontSize: 16, fontWeight: '600' },
   
   footer: { marginTop: 'auto', paddingBottom: 30, alignItems: 'center' },
-  footerSmall: { marginTop: 'auto', paddingBottom: 10, alignItems: 'center' },
+  footerSmall: { marginTop: 0, paddingBottom: 10, alignItems: 'center' },
   creditText: { color: 'rgba(255,255,255,0.3)', fontSize: 11 },
 });
