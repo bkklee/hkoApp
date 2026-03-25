@@ -66,11 +66,9 @@ export const WeatherDisplay: React.FC<WeatherDisplayProps> = ({
     const targetDate = new Date(year, month, day, hours, mins);
     const diffMins = Math.ceil((targetDate.getTime() - now.getTime()) / 60000);
     if (diffMins <= 0) return '已過';
-    if (diffMins >= 60) return `${Math.floor(diffMins / 60)}h${diffMins % 60 || ''}m`;
     return `${diffMins}m`;
   };
 
-  // Layout for Chart
   const chartPadding = isPad ? 20 : 10;
   const gapSize = isPad ? 16 : 8;
   const numBars = 4;
@@ -79,7 +77,6 @@ export const WeatherDisplay: React.FC<WeatherDisplayProps> = ({
 
   const renderContent = () => (
     <>
-      {/* Header */}
       <View style={isPad ? styles.headerPad : styles.header}>
         <View style={styles.locationRow}>
           {isUserLocation && <Ionicons name="navigate-sharp" size={isPad ? 18 : 14} color={mainColor === '#000000' ? '#FFF' : mainColor} style={{ marginRight: 6 }} />}
@@ -92,16 +89,14 @@ export const WeatherDisplay: React.FC<WeatherDisplayProps> = ({
         )}
       </View>
 
-      {/* Hero Section */}
       <View style={isPad ? styles.tempHeroPad : styles.tempHero}>
         <Text style={isPad ? styles.mainTempPad : styles.mainTemp}>{Math.round(temp)}<Text style={styles.degreeUnit}>°C</Text></Text>
-        <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: isPad ? 'center' : 'flex-start' }}>
+        <View style={{ flexDirection: 'row', alignItems: 'baseline', justifyContent: isPad ? 'center' : 'flex-start' }}>
           <Text style={isPad ? styles.conditionTextPad : styles.conditionText}>{condition}</Text>
-          <Text style={styles.dataTimeText}> • {formatShortTime(time)} 更新</Text>
+          <Text style={styles.dataTimeText}>  •  {formatShortTime(time)} 更新</Text>
         </View>
       </View>
 
-      {/* Umbrella Section */}
       <View style={isPad ? styles.umbrellaSectionPad : styles.umbrellaSection}>
         <View style={styles.umbrellaItem}>
            <Ionicons name="umbrella" size={isPad ? 24 : 20} color={anyRainInTwoHours ? "#40C4FF" : "rgba(255,255,255,0.15)"} />
@@ -116,7 +111,6 @@ export const WeatherDisplay: React.FC<WeatherDisplayProps> = ({
         </View>
       </View>
 
-      {/* Rain Section with Precise Boundary Alignment */}
       <View style={isPad ? styles.rainSectionPad : styles.rainSection}>
         <Text style={styles.sectionLabel}>未來兩小時降雨預測 (mm)</Text>
         <View style={[styles.timelineContainer, { paddingHorizontal: chartPadding }]}>
@@ -130,12 +124,10 @@ export const WeatherDisplay: React.FC<WeatherDisplayProps> = ({
           </View>
 
           <View style={[styles.boundaryContainer, { width: chartWidth }]}>
-             {/* NOW Label at the very start */}
              <View style={[styles.boundaryMark, { left: 0, alignItems: 'flex-start' }]}>
                 <Text style={styles.boundaryTimeHighlight}>{formatNowTime(now)}</Text>
                 <Text style={styles.boundaryLabelHighlight}>現在</Text>
              </View>
-             {/* Boundary Labels between bars */}
              {rainfall.slice(0,4).map((item, i) => {
                const isLast = i === 3;
                const pos = isLast ? chartWidth : (i + 1) * barWidth + (i + 0.5) * gapSize;
@@ -154,7 +146,6 @@ export const WeatherDisplay: React.FC<WeatherDisplayProps> = ({
         </View>
       </View>
 
-      {/* Forecast Section */}
       <View style={styles.forecastSection}>
         <Text style={styles.forecastTitle}>九日天氣預報</Text>
         <ScrollView horizontal showsHorizontalScrollIndicator={false}>
@@ -198,7 +189,6 @@ const styles = StyleSheet.create({
   outerContainer: { flex: 1, backgroundColor: '#000', alignItems: 'center' },
   iphoneContainer: { flex: 1, width: '100%', paddingTop: 90, paddingHorizontal: 20 },
   padFitContainer: { flex: 1, paddingTop: 80, paddingBottom: 60, justifyContent: 'space-between' },
-  
   header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 },
   headerPad: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 15 },
   locationRow: { flexDirection: 'row', alignItems: 'center' },
@@ -206,22 +196,20 @@ const styles = StyleSheet.create({
   stationNamePad: { color: '#FFF', fontSize: 32, fontWeight: '900' },
   warningBadge: { paddingHorizontal: 8, paddingVertical: 4, borderRadius: 4, borderWidth: 1 },
   warningBadgeText: { fontSize: 10, fontWeight: '900' },
-  
   tempHero: { marginBottom: 25 },
-  tempHeroPad: { marginBottom: 20 },
+  tempHeroPad: { marginBottom: 20, alignItems: 'center' },
   mainTemp: { color: '#FFF', fontSize: 72, fontWeight: '200' },
   mainTempPad: { color: '#FFF', fontSize: 90, fontWeight: '100' },
   degreeUnit: { fontSize: 28 },
-  conditionText: { color: 'rgba(255,255,255,0.7)', fontSize: 22 },
-  conditionTextPad: { color: 'rgba(255,255,255,0.7)', fontSize: 24 },
-  
+  conditionText: { color: 'rgba(255,255,255,0.8)', fontSize: 22 },
+  conditionTextPad: { color: 'rgba(255,255,255,0.8)', fontSize: 24 },
+  dataTimeText: { color: 'rgba(255,255,255,0.5)', fontSize: 13, fontWeight: '400' },
   umbrellaSection: { flexDirection: 'row', backgroundColor: 'rgba(255,255,255,0.05)', borderRadius: 16, padding: 16, marginBottom: 25, alignItems: 'center' },
   umbrellaSectionPad: { flexDirection: 'row', backgroundColor: 'rgba(255,255,255,0.05)', borderRadius: 20, paddingVertical: 16, paddingHorizontal: 24, marginBottom: 30, alignItems: 'center' },
   umbrellaItem: { flex: 1, alignItems: 'center' },
   dividerVertical: { width: 1, height: 35, backgroundColor: 'rgba(255,255,255,0.1)' },
   umbrellaLabel: { color: 'rgba(255,255,255,0.5)', fontSize: 12, marginTop: 4 },
   umbrellaValue: { fontSize: 15, fontWeight: '600', marginTop: 2 },
-  
   rainSection: { marginBottom: 35 },
   rainSectionPad: { marginBottom: 30 },
   sectionLabel: { color: 'rgba(255,255,255,0.5)', fontSize: 14, fontWeight: '600' },
@@ -229,14 +217,12 @@ const styles = StyleSheet.create({
   barsContainer: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-end', marginBottom: 10 },
   barValueText: { fontSize: 10, marginBottom: 4, color: '#666' },
   continuousBar: { borderRadius: 4 },
-  
   boundaryContainer: { flexDirection: 'row', height: 45, position: 'relative' },
   boundaryMark: { position: 'absolute', width: 60 },
   boundaryTime: { color: 'rgba(255,255,255,0.3)', fontSize: 10 },
   boundaryLabel: { color: 'rgba(255,255,255,0.2)', fontSize: 10 },
   boundaryTimeHighlight: { color: '#FFF', fontSize: 10, fontWeight: '700' },
   boundaryLabelHighlight: { color: 'rgba(255,255,255,0.5)', fontSize: 10, fontWeight: '700' },
-  
   forecastSection: { marginBottom: 35 },
   forecastTitle: { color: '#FFF', fontSize: 18, fontWeight: '700', marginBottom: 20 },
   forecastDay: { alignItems: 'center', marginRight: 28 },
@@ -245,7 +231,6 @@ const styles = StyleSheet.create({
   dayIcon: { width: 44, height: 44, marginVertical: 10 },
   maxTemp: { color: '#FFF', fontSize: 16, fontWeight: '600' },
   minTempText: { color: 'rgba(255,255,255,0.4)', fontSize: 14 },
-  
   footer: { marginTop: 'auto', paddingBottom: 30, alignItems: 'center' },
   creditText: { color: 'rgba(255,255,255,0.3)', fontSize: 11 },
 });
