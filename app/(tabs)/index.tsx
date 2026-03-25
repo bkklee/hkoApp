@@ -6,6 +6,11 @@ import { updateRainNotification } from '../../services/notifications';
 import { WeatherDisplay } from '../../components/WeatherDisplay';
 import { STATIONS } from '../../constants/stations';
 
+// Rough HK Boundary check (Lat: 22.1 - 22.6, Lon: 113.8 - 114.5)
+const isPointInHK = (lat: number, lon: number) => {
+  return lat >= 22.1 && lat <= 22.6 && lon >= 113.8 && lon <= 114.5;
+};
+
 export default function HomeScreen() {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -26,9 +31,7 @@ export default function HomeScreen() {
   });
 
   const loadWeather = useCallback(async (forceForecast = false) => {
-    if (!refreshing && !currentWeather) {
-      setLoading(true);
-    }
+    if (!refreshing && !currentWeather) setLoading(true);
 
     const safetyTimeout = setTimeout(() => {
       setLoading(false);
@@ -71,7 +74,6 @@ export default function HomeScreen() {
       const initialMatchedData = allWeatherData.find(d => d.station === targetStationName) || allWeatherData[0];
       
       setCurrentWeather({ ...initialMatchedData, condition, suggestUmbrellaLongTerm, longTermLabel });
-      
       setLoading(false);
       clearTimeout(safetyTimeout);
 
@@ -98,31 +100,40 @@ export default function HomeScreen() {
           let targetLon = targetStation.lon;
 
           if (location) {
-            setIsUserLocation(true);
-            let minDistance = Infinity;
-            STATIONS.forEach(station => {
-              const distance = Math.sqrt(
-                Math.pow(station.lat - location.coords.latitude, 2) + 
-                Math.pow(station.lon - location.coords.longitude, 2)
-              );
-              if (distance < minDistance) {
-                minDistance = distance;
-                targetStation = station;
-                targetLat = location.coords.latitude;
-                targetLon = location.coords.longitude;
-              }
-            });
-
-            lastTargetStationRef.current = targetStation.name;
-            const refinedMatchedData = allWeatherData.find(d => d.station === targetStation.name) || initialMatchedData;
-            setCurrentWeather({ ...refinedMatchedData, condition, suggestUmbrellaLongTerm, longTermLabel });
+            const { latitude, longitude } = location.coords;
+            
+            // --- GEOFENCING CHECK ---
+            if (isPointInHK(latitude, longitude)) {
+                setIsUserLocation(true);
+                let minDistance = Infinity;
+                STATIONS.forEach(station => {
+                  const distance = Math.sqrt(Math.pow(station.lat - latitude, 2) + Math.pow(station.lon - longitude, 2));
+                  if (distance < minDistance) {
+                    minDistance = distance;
+                    targetStation = station;
+                    targetLat = latitude;
+                    targetLon = longitude;
+                  }
+                });
+                lastTargetStationRef.current = targetStation.name;
+                const refinedMatchedData = allWeatherData.find(d => d.station === targetStation.name) || initialMatchedData;
+                setCurrentWeather({ ...refinedMatchedData, condition, suggestUmbrellaLongTerm, longTermLabel });
+            } else {
+                // User is outside HK - Switch back to default (HK Observatory)
+                console.log('User is outside HK, skipping local refinement.');
+                setIsUserLocation(false);
+                lastTargetStationRef.current = defaultStation.name;
+                const hkoData = allWeatherData.find(d => d.station === defaultStation.name) || allWeatherData[0];
+                setCurrentWeather({ ...hkoData, condition, suggestUmbrellaLongTerm, longTermLabel });
+                targetLat = defaultStation.lat;
+                targetLon = defaultStation.lon;
+            }
           }
 
           const rain = await fetchRainfallNowcast(targetLat, targetLon).catch(() => []);
           setRainfall(rain);
           await updateRainNotification(rain);
         } catch (e) {
-          console.log('Background location refinement skipped:', e);
           const rain = await fetchRainfallNowcast(defaultStation.lat, defaultStation.lon).catch(() => []);
           setRainfall(rain);
         } finally {
@@ -133,7 +144,6 @@ export default function HomeScreen() {
       fetchLocationAndRefine();
       setError(null);
     } catch (err: any) {
-      console.error('loadWeather Error:', err);
       setError('天氣更新失敗，請檢查網路。');
       setLoading(false);
       setRefreshing(false);
@@ -193,17 +203,7 @@ export default function HomeScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#000',
-  },
-  center: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: '#000',
-  },
-  text: {
-    color: '#FFF',
-  },
+  container: { flex: 1, backgroundColor: '#000' },
+  center: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#000' },
+  text: { color: '#FFF' },
 });
