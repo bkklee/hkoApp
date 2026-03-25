@@ -21,7 +21,6 @@ export const WeatherDisplay: React.FC<WeatherDisplayProps> = ({
 }) => {
   
   const { width, height } = useWindowDimensions();
-  // More strict iPad check: iPad must have large dimensions AND be tablet platform
   const isPad = Platform.OS === 'ios' && Platform.isPad && (width >= 768 || height >= 768);
   const contentWidth = isPad ? Math.min(width * 0.85, 800) : width - 40;
   
@@ -112,7 +111,7 @@ export const WeatherDisplay: React.FC<WeatherDisplayProps> = ({
         {/* Header */}
         <View style={styles.header}>
           <View style={styles.locationRow}>
-            {isUserLocation && <Ionicons name="navigate-sharp" size={isPad ? 18 : 14} color={mainColor === '#000000' ? '#FFF' : mainColor} style={{ marginRight: 8 }} />}
+            {isUserLocation && <Ionicons name="navigate-sharp" size={isPad ? 18 : 14} color={mainColor === '#000000' ? '#FFF' : mainColor} style={{ marginRight: 6 }} />}
             <Text style={[styles.stationName, isPad && styles.stationNamePad]}>{station}</Text>
           </View>
           {status.label !== 'ALL CLEAR' && status.label !== 'RAINING' && (
@@ -218,8 +217,8 @@ export const WeatherDisplay: React.FC<WeatherDisplayProps> = ({
                     style={[styles.dayIcon, isPad && styles.dayIconPad]}
                   />
                   <View style={styles.dayTempCol}>
-                       <Text style={[styles.maxTemp, isPad && styles.maxTempPad]}>{day.forecastMaxtemp.value}°</Text>
-                       <Text style={[styles.minTemp, isPad && styles.minTempPad]}>{day.forecastMintemp.value}°</Text>
+                       <Text style={[styles.maxTemp, isPad && styles.dayTempPad]}>{day.forecastMaxtemp.value}°</Text>
+                       <Text style={[styles.minTemp, isPad && styles.dayTempPad]}>{day.forecastMintemp.value}°</Text>
                   </View>
                 </View>
               ))}
@@ -243,14 +242,14 @@ const styles = StyleSheet.create({
   },
   container: {
     flex: 1,
-    paddingTop: Platform.OS === 'ios' ? 70 : 50, // Reduced padding for iPhone
+    paddingTop: 90, // REVERTED TO ORIGINAL
     paddingHorizontal: 20,
   },
   header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 20, // Reduced from 30
+    marginBottom: 20, // REVERTED TO ORIGINAL
   },
   locationRow: {
     flexDirection: 'row',
@@ -283,7 +282,7 @@ const styles = StyleSheet.create({
     fontSize: 18,
   },
   heroLayout: {
-    marginBottom: 20,
+    marginBottom: 25, // REVERTED TO ORIGINAL
   },
   heroLayoutPad: {
     flexDirection: 'row',
@@ -296,7 +295,7 @@ const styles = StyleSheet.create({
   },
   mainTemp: {
     color: '#FFF',
-    fontSize: 72, // Reverted to original
+    fontSize: 72, 
     fontWeight: '200',
   },
   mainTempPad: {
@@ -321,12 +320,14 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(255,255,255,0.05)',
     borderRadius: 16,
     padding: 16,
+    marginBottom: 25, // REVERTED TO ORIGINAL
     alignItems: 'center',
   },
   umbrellaSectionPad: {
     padding: 30,
     minWidth: 400,
     borderRadius: 20,
+    marginBottom: 50,
   },
   umbrellaItem: {
     flex: 1,
@@ -357,13 +358,13 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   rainSection: {
-    marginBottom: 30,
+    marginBottom: 35, // REVERTED TO ORIGINAL
   },
   rainSectionPad: {
     marginBottom: 60,
   },
   sectionHeader: {
-    marginBottom: 15,
+    marginBottom: 15, // REVERTED TO ORIGINAL
   },
   sectionLabel: {
     color: 'rgba(255,255,255,0.5)',
@@ -424,13 +425,13 @@ const styles = StyleSheet.create({
     fontWeight: '700',
   },
   forecastSection: {
-    marginBottom: 30,
+    marginBottom: 35, // REVERTED TO ORIGINAL
   },
   forecastTitle: {
     color: '#FFF',
     fontSize: 18,
     fontWeight: '700',
-    marginBottom: 20,
+    marginBottom: 20, // REVERTED TO ORIGINAL
   },
   forecastTitlePad: {
     fontSize: 28,
@@ -441,7 +442,7 @@ const styles = StyleSheet.create({
   },
   forecastDay: {
     alignItems: 'center',
-    marginRight: 28,
+    marginRight: 28, // REVERTED TO ORIGINAL
   },
   forecastDayPad: {
     marginRight: 50,
@@ -492,7 +493,7 @@ const styles = StyleSheet.create({
   },
   footer: {
     marginTop: 'auto',
-    paddingBottom: 30,
+    paddingBottom: 30, // REVERTED TO ORIGINAL
     alignItems: 'center',
   },
   creditText: {
