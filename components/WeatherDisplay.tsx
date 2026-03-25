@@ -106,6 +106,9 @@ export const WeatherDisplay: React.FC<WeatherDisplayProps> = ({
           {forecast?.map((day, i) => (
             <View key={i} style={styles.forecastDay}>
               <Text style={styles.dayName}>{day.week.replace('星期', '')}</Text>
+              <Text style={{ color: 'rgba(255,255,255,0.4)', fontSize: 12, marginTop: 2 }}>
+                {day.forecastDate.slice(6, 8)}/{day.forecastDate.slice(4, 6)}
+              </Text>
               <Image source={{ uri: `https://www.hko.gov.hk/images/HKOWxIconOutline/pic${day.ForecastIcon}.png` }} style={styles.dayIcon} />
               <View style={{ alignItems: 'center' }}>
                 <Text style={styles.maxTemp}>{day.forecastMaxtemp.value}°</Text>
