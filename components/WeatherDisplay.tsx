@@ -95,7 +95,10 @@ export const WeatherDisplay: React.FC<WeatherDisplayProps> = ({
       {/* Hero Section */}
       <View style={isPad ? styles.tempHeroPad : styles.tempHero}>
         <Text style={isPad ? styles.mainTempPad : styles.mainTemp}>{Math.round(temp)}<Text style={styles.degreeUnit}>°C</Text></Text>
-        <Text style={isPad ? styles.conditionTextPad : styles.conditionText}>{condition}</Text>
+        <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: isPad ? 'center' : 'flex-start' }}>
+          <Text style={isPad ? styles.conditionTextPad : styles.conditionText}>{condition}</Text>
+          <Text style={styles.dataTimeText}> • {formatShortTime(time)} 更新</Text>
+        </View>
       </View>
 
       {/* Umbrella Section */}
