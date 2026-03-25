@@ -80,6 +80,18 @@ export const WeatherDisplay: React.FC<WeatherDisplayProps> = ({
   const chartWidth = contentWidth - (isPad ? chartPadding * 2 : 40 + chartPadding * 2);
   const barWidth = (chartWidth - (numBars - 1) * gapSize) / numBars;
 
+  const renderForecastItem = (day: ForecastData, i: number) => (
+    <View key={i} style={isPad ? styles.forecastDayPad : styles.forecastDay}>
+      <Text style={styles.dayName}>{day.week.replace('星期', '')}</Text>
+      <Text style={styles.dayDateText}>{day.forecastDate.slice(6, 8)}/{day.forecastDate.slice(4, 6)}</Text>
+      <Image source={{ uri: `https://www.hko.gov.hk/images/HKOWxIconOutline/pic${day.ForecastIcon}.png` }} style={styles.dayIcon} />
+      <View style={{ alignItems: 'center' }}>
+        <Text style={styles.maxTemp}>{day.forecastMaxtemp.value}°</Text>
+        <Text style={styles.minTempText}>{day.forecastMintemp.value}°</Text>
+      </View>
+    </View>
+  );
+
   const renderContent = () => (
     <>
       <View style={isPad ? styles.headerPad : styles.header}>
@@ -153,19 +165,15 @@ export const WeatherDisplay: React.FC<WeatherDisplayProps> = ({
 
       <View style={styles.forecastSection}>
         <Text style={styles.forecastTitle}>九日天氣預報</Text>
-        <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-          {forecast?.map((day, i) => (
-            <View key={i} style={styles.forecastDay}>
-              <Text style={styles.dayName}>{day.week.replace('星期', '')}</Text>
-              <Text style={styles.dayDateText}>{day.forecastDate.slice(6, 8)}/{day.forecastDate.slice(4, 6)}</Text>
-              <Image source={{ uri: `https://www.hko.gov.hk/images/HKOWxIconOutline/pic${day.ForecastIcon}.png` }} style={styles.dayIcon} />
-              <View style={{ alignItems: 'center' }}>
-                <Text style={styles.maxTemp}>{day.forecastMaxtemp.value}°</Text>
-                <Text style={styles.minTempText}>{day.forecastMintemp.value}°</Text>
-              </View>
-            </View>
-          ))}
-        </ScrollView>
+        {isPad ? (
+          <View style={styles.forecastContainerPad}>
+            {forecast?.slice(0, 9).map((day, i) => renderForecastItem(day, i))}
+          </View>
+        ) : (
+          <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+            {forecast?.map((day, i) => renderForecastItem(day, i))}
+          </ScrollView>
+        )}
       </View>
 
       <View style={styles.footer}>
@@ -231,6 +239,8 @@ const styles = StyleSheet.create({
   forecastSection: { marginBottom: 35 },
   forecastTitle: { color: '#FFF', fontSize: 18, fontWeight: '700', marginBottom: 20 },
   forecastDay: { alignItems: 'center', marginRight: 28 },
+  forecastDayPad: { alignItems: 'center', flex: 1 },
+  forecastContainerPad: { flexDirection: 'row', justifyContent: 'space-between', width: '100%' },
   dayName: { color: '#FFF', fontSize: 16, fontWeight: '600' },
   dayDateText: { color: 'rgba(255,255,255,0.4)', fontSize: 12, marginTop: 2 },
   dayIcon: { width: 44, height: 44, marginVertical: 10 },
