@@ -21,7 +21,8 @@ export const WeatherDisplay: React.FC<WeatherDisplayProps> = ({
 }) => {
   
   const { width, height } = useWindowDimensions();
-  const isPad = Platform.OS === 'ios' && (width >= 768 || height >= 768);
+  // More strict iPad check: iPad must have large dimensions AND be tablet platform
+  const isPad = Platform.OS === 'ios' && Platform.isPad && (width >= 768 || height >= 768);
   const contentWidth = isPad ? Math.min(width * 0.85, 800) : width - 40;
   
   const pulseAnim = useRef(new Animated.Value(1)).current;
@@ -151,7 +152,6 @@ export const WeatherDisplay: React.FC<WeatherDisplayProps> = ({
           </View>
         </View>
 
-        {/* Body Layout: On iPad we can use a row if width is large, but for now optimized single column is safer for review */}
         <View style={styles.bodyContainer}>
           {/* Rain Timeline */}
           <View style={[styles.rainSection, isPad && styles.rainSectionPad]}>
@@ -208,7 +208,7 @@ export const WeatherDisplay: React.FC<WeatherDisplayProps> = ({
           {/* Forecast */}
           <View style={styles.forecastSection}>
             <Text style={[styles.forecastTitle, isPad && styles.forecastTitlePad]}>九日天氣預報</Text>
-            <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.forecastScroll} contentContainerStyle={isPad && { paddingBottom: 20 }}>
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.forecastScroll}>
               {forecast?.map((day, i) => (
                 <View key={i} style={[styles.forecastDay, isPad && styles.forecastDayPad]}>
                   <Text style={[styles.dayName, isPad && styles.dayNamePad]}>{getDayLabel(day.forecastDate, day.week)}</Text>
@@ -218,8 +218,8 @@ export const WeatherDisplay: React.FC<WeatherDisplayProps> = ({
                     style={[styles.dayIcon, isPad && styles.dayIconPad]}
                   />
                   <View style={styles.dayTempCol}>
-                       <Text style={[styles.maxTemp, isPad && styles.dayTempPad]}>{day.forecastMaxtemp.value}°</Text>
-                       <Text style={[styles.minTemp, isPad && styles.dayTempPad]}>{day.forecastMintemp.value}°</Text>
+                       <Text style={[styles.maxTemp, isPad && styles.maxTempPad]}>{day.forecastMaxtemp.value}°</Text>
+                       <Text style={[styles.minTemp, isPad && styles.minTempPad]}>{day.forecastMintemp.value}°</Text>
                   </View>
                 </View>
               ))}
@@ -243,14 +243,14 @@ const styles = StyleSheet.create({
   },
   container: {
     flex: 1,
-    paddingTop: Platform.OS === 'ios' ? 90 : 50,
+    paddingTop: Platform.OS === 'ios' ? 70 : 50, // Reduced padding for iPhone
     paddingHorizontal: 20,
   },
   header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 30,
+    marginBottom: 20, // Reduced from 30
   },
   locationRow: {
     flexDirection: 'row',
@@ -258,7 +258,7 @@ const styles = StyleSheet.create({
   },
   stationName: {
     color: '#FFF',
-    fontSize: 22,
+    fontSize: 20,
     fontWeight: '800',
     letterSpacing: -0.5,
   },
@@ -266,9 +266,9 @@ const styles = StyleSheet.create({
     fontSize: 32,
   },
   warningBadge: {
-    paddingHorizontal: 10,
-    paddingVertical: 6,
-    borderRadius: 6,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 4,
     borderWidth: 1,
   },
   warningBadgePad: {
@@ -276,14 +276,14 @@ const styles = StyleSheet.create({
     paddingVertical: 8,
   },
   warningBadgeText: {
-    fontSize: 12,
+    fontSize: 10,
     fontWeight: '900',
   },
   warningBadgeTextPad: {
     fontSize: 18,
   },
   heroLayout: {
-    marginBottom: 30,
+    marginBottom: 20,
   },
   heroLayoutPad: {
     flexDirection: 'row',
@@ -296,21 +296,21 @@ const styles = StyleSheet.create({
   },
   mainTemp: {
     color: '#FFF',
-    fontSize: 84,
+    fontSize: 72, // Reverted to original
     fontWeight: '200',
   },
   mainTempPad: {
     fontSize: 120,
   },
   degreeUnit: {
-    fontSize: 32,
+    fontSize: 28,
   },
   degreeUnitPad: {
     fontSize: 48,
   },
   conditionText: {
     color: 'rgba(255,255,255,0.7)',
-    fontSize: 24,
+    fontSize: 22,
     fontWeight: '400',
   },
   conditionTextPad: {
@@ -318,15 +318,15 @@ const styles = StyleSheet.create({
   },
   umbrellaSection: {
     flexDirection: 'row',
-    backgroundColor: 'rgba(255,255,255,0.07)',
-    borderRadius: 20,
-    padding: 20,
+    backgroundColor: 'rgba(255,255,255,0.05)',
+    borderRadius: 16,
+    padding: 16,
     alignItems: 'center',
-    minWidth: 280,
   },
   umbrellaSectionPad: {
     padding: 30,
     minWidth: 400,
+    borderRadius: 20,
   },
   umbrellaItem: {
     flex: 1,
@@ -334,21 +334,21 @@ const styles = StyleSheet.create({
   },
   dividerVertical: {
     width: 1,
-    height: 40,
+    height: 35,
     backgroundColor: 'rgba(255,255,255,0.1)',
   },
   umbrellaLabel: {
     color: 'rgba(255,255,255,0.5)',
-    fontSize: 13,
-    marginTop: 6,
+    fontSize: 12,
+    marginTop: 4,
   },
   umbrellaLabelPad: {
     fontSize: 18,
   },
   umbrellaValue: {
-    fontSize: 16,
+    fontSize: 15,
     fontWeight: '600',
-    marginTop: 4,
+    marginTop: 2,
   },
   umbrellaValuePad: {
     fontSize: 22,
@@ -357,17 +357,17 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   rainSection: {
-    marginBottom: 40,
+    marginBottom: 30,
   },
   rainSectionPad: {
     marginBottom: 60,
   },
   sectionHeader: {
-    marginBottom: 20,
+    marginBottom: 15,
   },
   sectionLabel: {
     color: 'rgba(255,255,255,0.5)',
-    fontSize: 15,
+    fontSize: 14,
     fontWeight: '600',
   },
   sectionLabelPad: {
@@ -380,32 +380,32 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'flex-end',
-    marginBottom: 15,
+    marginBottom: 10,
   },
   barValueText: {
-    fontSize: 11,
-    marginBottom: 6,
+    fontSize: 10,
+    marginBottom: 4,
   },
   barValueTextPad: {
     fontSize: 16,
   },
   continuousBar: {
-    borderRadius: 6,
+    borderRadius: 4,
   },
   boundaryContainer: {
     flexDirection: 'row',
-    height: 50,
+    height: 45,
   },
   boundaryMark: {
     position: 'absolute',
   },
   boundaryTime: {
-    color: 'rgba(255,255,255,0.4)',
-    fontSize: 11,
+    color: 'rgba(255,255,255,0.3)',
+    fontSize: 10,
   },
   boundaryLabel: {
-    color: 'rgba(255,255,255,0.3)',
-    fontSize: 11,
+    color: 'rgba(255,255,255,0.2)',
+    fontSize: 10,
   },
   boundaryTimePad: {
     fontSize: 15,
@@ -415,22 +415,22 @@ const styles = StyleSheet.create({
   },
   boundaryTimeHighlight: {
     color: '#FFF',
-    fontSize: 11,
+    fontSize: 10,
     fontWeight: '700',
   },
   boundaryLabelHighlight: {
-    color: 'rgba(255,255,255,0.6)',
-    fontSize: 11,
+    color: 'rgba(255,255,255,0.5)',
+    fontSize: 10,
     fontWeight: '700',
   },
   forecastSection: {
-    marginBottom: 40,
+    marginBottom: 30,
   },
   forecastTitle: {
     color: '#FFF',
-    fontSize: 20,
+    fontSize: 18,
     fontWeight: '700',
-    marginBottom: 25,
+    marginBottom: 20,
   },
   forecastTitlePad: {
     fontSize: 28,
@@ -441,14 +441,14 @@ const styles = StyleSheet.create({
   },
   forecastDay: {
     alignItems: 'center',
-    marginRight: 32,
+    marginRight: 28,
   },
   forecastDayPad: {
     marginRight: 50,
   },
   dayName: {
     color: '#FFF',
-    fontSize: 17,
+    fontSize: 16,
     fontWeight: '600',
   },
   dayNamePad: {
@@ -456,16 +456,16 @@ const styles = StyleSheet.create({
   },
   dayDate: {
     color: 'rgba(255,255,255,0.4)',
-    fontSize: 13,
-    marginTop: 4,
+    fontSize: 12,
+    marginTop: 2,
   },
   dayDatePad: {
     fontSize: 16,
   },
   dayIcon: {
-    width: 48,
-    height: 48,
-    marginVertical: 12,
+    width: 44,
+    height: 44,
+    marginVertical: 10,
   },
   dayIconPad: {
     width: 80,
@@ -474,27 +474,30 @@ const styles = StyleSheet.create({
   dayTempCol: {
     alignItems: 'center',
   },
-  dayTempPad: {
-    fontSize: 22,
-  },
   maxTemp: {
     color: '#FFF',
-    fontSize: 17,
+    fontSize: 16,
     fontWeight: '600',
+  },
+  maxTempPad: {
+    fontSize: 22,
   },
   minTemp: {
     color: 'rgba(255,255,255,0.4)',
-    fontSize: 17,
+    fontSize: 16,
     fontWeight: '600',
+  },
+  minTempPad: {
+    fontSize: 22,
   },
   footer: {
     marginTop: 'auto',
-    paddingBottom: 40,
+    paddingBottom: 30,
     alignItems: 'center',
   },
   creditText: {
     color: 'rgba(255,255,255,0.3)',
-    fontSize: 12,
+    fontSize: 11,
   },
   creditTextPad: {
     fontSize: 16,
