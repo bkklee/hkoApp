@@ -54,17 +54,6 @@ export const WeatherDisplay: React.FC<WeatherDisplayProps> = ({
     return `${timeStr.slice(8, 10)}:${timeStr.slice(10, 12)}`;
   };
 
-  const getRelativeMins = (targetStr: string) => {
-    if (!targetStr) return null;
-    const year = parseInt(targetStr.slice(0, 4)), month = parseInt(targetStr.slice(4, 6)) - 1, day = parseInt(targetStr.slice(6, 8));
-    const hours = parseInt(targetStr.slice(8, 10)), mins = parseInt(targetStr.slice(10, 12));
-    const targetDate = new Date(year, month, day, hours, mins);
-    const diffMins = Math.ceil((targetDate.getTime() - now.getTime()) / 60000);
-    if (diffMins <= 0) return '已過';
-    return `${diffMins}m`;
-  };
-
-  // Content rendering logic
   const renderContent = () => (
     <>
       <View style={isPad ? styles.headerPad : styles.header}>
@@ -86,13 +75,13 @@ export const WeatherDisplay: React.FC<WeatherDisplayProps> = ({
 
       <View style={isPad ? styles.umbrellaSectionPad : styles.umbrellaSection}>
         <View style={styles.umbrellaItem}>
-           <Ionicons name="umbrella" size={isPad ? 28 : 20} color={anyRainInTwoHours ? "#40C4FF" : "rgba(255,255,255,0.15)"} />
+           <Ionicons name="umbrella" size={isPad ? 24 : 20} color={anyRainInTwoHours ? "#40C4FF" : "rgba(255,255,255,0.15)"} />
            <Text style={styles.umbrellaLabel}>兩小時內</Text>
            <Text style={[styles.umbrellaValue, { color: anyRainInTwoHours ? "#40C4FF" : "rgba(255,255,255,0.3)" }]}>{anyRainInTwoHours ? "建議帶傘" : "無須帶傘"}</Text>
         </View>
         <View style={styles.dividerVertical} />
         <View style={styles.umbrellaItem}>
-           <Ionicons name="umbrella" size={isPad ? 28 : 20} color={suggestUmbrellaLongTerm ? "#40C4FF" : "rgba(255,255,255,0.15)"} />
+           <Ionicons name="umbrella" size={isPad ? 24 : 20} color={suggestUmbrellaLongTerm ? "#40C4FF" : "rgba(255,255,255,0.15)"} />
            <Text style={styles.umbrellaLabel}>{longTermLabel}</Text>
            <Text style={[styles.umbrellaValue, { color: suggestUmbrellaLongTerm ? "#40C4FF" : "rgba(255,255,255,0.3)" }]}>{suggestUmbrellaLongTerm ? "建議帶傘" : "無須帶傘"}</Text>
         </View>
@@ -100,11 +89,11 @@ export const WeatherDisplay: React.FC<WeatherDisplayProps> = ({
 
       <View style={isPad ? styles.rainSectionPad : styles.rainSection}>
         <Text style={styles.sectionLabel}>未來兩小時降雨預測 (mm)</Text>
-        <View style={[styles.barsContainer, { height: isPad ? 100 : 70, marginTop: 15 }]}>
+        <View style={[styles.barsContainer, { height: isPad ? 90 : 70, marginTop: isPad ? 10 : 15 }]}>
           {rainfall.slice(0,4).map((item, i) => (
             <View key={i} style={{ width: isPad ? 100 : 60, alignItems: 'center' }}>
               <Text style={styles.barValueText}>{item.amount >= 0.05 ? item.amount.toFixed(1) : '0'}</Text>
-              <View style={[styles.continuousBar, { width: isPad ? 80 : 50, height: Math.max(4, Math.min(item.amount * (isPad ? 40 : 35), isPad ? 100 : 70)), backgroundColor: item.amount >= 0.05 ? mainColor : 'rgba(255,255,255,0.05)' }]} />
+              <View style={[styles.continuousBar, { width: isPad ? 80 : 50, height: Math.max(4, Math.min(item.amount * (isPad ? 35 : 35), isPad ? 90 : 70)), backgroundColor: item.amount >= 0.05 ? mainColor : 'rgba(255,255,255,0.05)' }]} />
               {isPad && <Text style={styles.barTimeText}>{formatShortTime(item.endTime)}</Text>}
             </View>
           ))}
@@ -149,10 +138,10 @@ export const WeatherDisplay: React.FC<WeatherDisplayProps> = ({
 const styles = StyleSheet.create({
   outerContainer: { flex: 1, backgroundColor: '#000', alignItems: 'center' },
   iphoneContainer: { flex: 1, width: '100%', paddingTop: 90, paddingHorizontal: 20 },
-  padFitContainer: { flex: 1, paddingTop: 60, paddingBottom: 40, justifyContent: 'space-between' },
+  padFitContainer: { flex: 1, paddingTop: 80, paddingBottom: 60, justifyContent: 'space-between' },
   
   header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 },
-  headerPad: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 },
+  headerPad: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 15 },
   
   locationRow: { flexDirection: 'row', alignItems: 'center' },
   stationName: { color: '#FFF', fontSize: 20, fontWeight: '800' },
@@ -162,22 +151,22 @@ const styles = StyleSheet.create({
   warningBadgeText: { fontSize: 10, fontWeight: '900' },
   
   tempHero: { marginBottom: 25 },
-  tempHeroPad: { marginBottom: 10 },
+  tempHeroPad: { marginBottom: 20 },
   mainTemp: { color: '#FFF', fontSize: 72, fontWeight: '200' },
-  mainTempPad: { color: '#FFF', fontSize: 110, fontWeight: '100' },
+  mainTempPad: { color: '#FFF', fontSize: 90, fontWeight: '100' },
   degreeUnit: { fontSize: 28 },
   conditionText: { color: 'rgba(255,255,255,0.7)', fontSize: 22 },
-  conditionTextPad: { color: 'rgba(255,255,255,0.7)', fontSize: 32 },
+  conditionTextPad: { color: 'rgba(255,255,255,0.7)', fontSize: 24 },
   
   umbrellaSection: { flexDirection: 'row', backgroundColor: 'rgba(255,255,255,0.05)', borderRadius: 16, padding: 16, marginBottom: 25, alignItems: 'center' },
-  umbrellaSectionPad: { flexDirection: 'row', backgroundColor: 'rgba(255,255,255,0.05)', borderRadius: 20, padding: 24, marginBottom: 20, alignItems: 'center' },
+  umbrellaSectionPad: { flexDirection: 'row', backgroundColor: 'rgba(255,255,255,0.05)', borderRadius: 20, paddingVertical: 16, paddingHorizontal: 24, marginBottom: 30, alignItems: 'center' },
   umbrellaItem: { flex: 1, alignItems: 'center' },
   dividerVertical: { width: 1, height: 35, backgroundColor: 'rgba(255,255,255,0.1)' },
   umbrellaLabel: { color: 'rgba(255,255,255,0.5)', fontSize: 12, marginTop: 4 },
   umbrellaValue: { fontSize: 15, fontWeight: '600', marginTop: 2 },
   
   rainSection: { marginBottom: 35 },
-  rainSectionPad: { marginBottom: 20 },
+  rainSectionPad: { marginBottom: 30 },
   sectionLabel: { color: 'rgba(255,255,255,0.5)', fontSize: 14, fontWeight: '600' },
   barsContainer: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-end' },
   barValueText: { fontSize: 10, marginBottom: 4, color: '#666' },
