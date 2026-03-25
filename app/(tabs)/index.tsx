@@ -30,8 +30,11 @@ export default function HomeScreen() {
     longTermLabel: '今日'
   });
 
-  const loadWeather = useCallback(async (forceForecast = false) => {
-    if (!refreshing && !currentWeather) setLoading(true);
+  const loadWeather = useCallback(async (forceForecast = false, isTimerUpdate = false) => {
+    // ONLY show loading on very first launch (when no data exists and not a timer update)
+    if (!currentWeather && !refreshing && !isTimerUpdate) {
+      setLoading(true);
+    }
 
     const safetyTimeout = setTimeout(() => {
       setLoading(false);
@@ -101,8 +104,6 @@ export default function HomeScreen() {
 
           if (location) {
             const { latitude, longitude } = location.coords;
-            
-            // --- GEOFENCING CHECK ---
             if (isPointInHK(latitude, longitude)) {
                 setIsUserLocation(true);
                 let minDistance = Infinity;
@@ -119,8 +120,6 @@ export default function HomeScreen() {
                 const refinedMatchedData = allWeatherData.find(d => d.station === targetStation.name) || initialMatchedData;
                 setCurrentWeather({ ...refinedMatchedData, condition, suggestUmbrellaLongTerm, longTermLabel });
             } else {
-                // User is outside HK - Switch back to default (HK Observatory)
-                console.log('User is outside HK, skipping local refinement.');
                 setIsUserLocation(false);
                 lastTargetStationRef.current = defaultStation.name;
                 const hkoData = allWeatherData.find(d => d.station === defaultStation.name) || allWeatherData[0];
@@ -153,8 +152,14 @@ export default function HomeScreen() {
   }, [refreshing]);
 
   useEffect(() => {
+    // Initial Load
     loadWeather(true);
-    const intervalId = setInterval(() => loadWeather(false), 5 * 60 * 1000);
+    
+    // Auto-refresh every 5 minutes - PASS isTimerUpdate=true to keep it silent
+    const intervalId = setInterval(() => {
+      loadWeather(false, true);
+    }, 5 * 60 * 1000);
+
     return () => clearInterval(intervalId);
   }, [loadWeather]);
 
