@@ -2,26 +2,21 @@ import { useEffect } from 'react';
 import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { startBackgroundTracker } from '../services/background';
-import { setupPushNotificationListeners } from '../services/notifications';
+import { setupPushNotificationListeners, registerBackgroundNotificationTask } from '../services/notifications';
 
 export default function RootLayout() {
   useEffect(() => {
-    // Start the background tracker (Old polling method still active)
+    // 1. Start the background tracker (Old polling method)
     startBackgroundTracker(); 
     
-    // Set up listeners for new Push Notifications (Silent Data Pushes)
-    let subscription: { remove: () => void } | undefined;
-    
-    const initNotifications = async () => {
-      subscription = await setupPushNotificationListeners();
-    };
-    
-    initNotifications();
+    // 2. Register background push task (For when app is killed)
+    registerBackgroundNotificationTask();
+
+    // 3. Set up foreground listeners
+    const subscription = setupPushNotificationListeners();
 
     return () => {
-      if (subscription) {
-        subscription.remove();
-      }
+      subscription.remove();
     };
   }, []);
 

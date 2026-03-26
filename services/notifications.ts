@@ -75,22 +75,32 @@ export async function registerForPushNotificationsAsync() {
   }
 }
 
+const BACKGROUND_NOTIFICATION_TASK = 'BACKGROUND-NOTIFICATION-TASK';
+
+/**
+ * Register the background task (for when app is killed)
+ * This must be called early in the app lifecycle.
+ */
+export async function registerBackgroundNotificationTask() {
+  if (Platform.OS !== 'ios') return;
+  
+  try {
+    const isRegistered = await TaskManager.isTaskRegisteredAsync(BACKGROUND_NOTIFICATION_TASK);
+    if (!isRegistered) {
+      await Notifications.registerTaskAsync(BACKGROUND_NOTIFICATION_TASK);
+      console.log('Background Notification Task Registered');
+    }
+  } catch (e) {
+    console.error('Failed to register background notification task:', e);
+  }
+}
+
 /**
  * Listener for incoming data (Silent or Visible)
  * This handles the "wake up" logic when a push arrives
  */
-export async function setupPushNotificationListeners() {
-  // 1. Register the background task (for when app is killed)
-  if (Platform.OS === 'ios') {
-    try {
-      await Notifications.registerTaskAsync(BACKGROUND_NOTIFICATION_TASK);
-      console.log('Background Notification Task Registered');
-    } catch (e) {
-      console.error('Failed to register background notification task:', e);
-    }
-  }
-
-  // 2. Foreground listener
+export function setupPushNotificationListeners() {
+  // Foreground listener
   const subscription = Notifications.addNotificationReceivedListener(notification => {
     const data = notification.request.content.data;
     console.log('Push Notification Received (Foreground):', data);
