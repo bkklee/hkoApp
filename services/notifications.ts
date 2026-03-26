@@ -76,9 +76,9 @@ TaskManager.defineTask(BACKGROUND_NOTIFICATION_TASK, async ({ data, error }) => 
   const notification = (data as any).notification;
   const payload = notification?.request?.content?.data;
 
-  if (payload && payload.type === 'RAIN_UPDATE' && Array.isArray(payload.rainfall)) {
+  if (payload && payload.type === 'rainfall_update' && Array.isArray(payload.rainfallNowcast)) {
     console.log('[BG TASK] Processing Rain Data from Silent Push...');
-    await updateRainNotification(payload.rainfall);
+    await updateRainNotification(payload.rainfallNowcast);
   }
 });
 
@@ -159,8 +159,8 @@ export function setupPushNotificationListeners() {
     const data = notification.request.content.data;
     console.log('Push Notification Received (Foreground):', data);
 
-    if (data && data.type === 'RAIN_UPDATE' && Array.isArray(data.rainfall)) {
-      updateRainNotification(data.rainfall);
+    if (data && data.type === 'rainfall_update' && Array.isArray(data.rainfallNowcast)) {
+      updateRainNotification(data.rainfallNowcast);
     }
   });
 
