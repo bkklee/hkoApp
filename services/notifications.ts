@@ -2,7 +2,6 @@ import * as Notifications from 'expo-notifications';
 import * as Device from 'expo-device';
 import * as TaskManager from 'expo-task-manager';
 import { Platform } from 'react-native';
-import { addMinutesToHKOTime } from './weather';
 
 const BACKGROUND_NOTIFICATION_TASK = 'BACKGROUND-NOTIFICATION-TASK';
 
@@ -77,19 +76,9 @@ TaskManager.defineTask(BACKGROUND_NOTIFICATION_TASK, async ({ data, error }) => 
   const notification = (data as any).notification;
   const payload = notification?.request?.content?.data;
 
-  if (payload && payload.type === 'RAIN_UPDATE') {
-    if (Array.isArray(payload.rainfall)) {
-        console.log('[BG TASK] Processing Rain Data (Legacy Format)...');
-        await updateRainNotification(payload.rainfall);
-    } else if (payload.updatedTime && Array.isArray(payload.rainfallNowcast)) {
-        console.log('[BG TASK] Processing Rain Data (API Format)...');
-        const formattedRainfall = payload.rainfallNowcast.map((amount: number, index: number) => ({
-            updateTime: payload.updatedTime,
-            endTime: addMinutesToHKOTime(payload.updatedTime, (index + 1) * 30),
-            amount: amount
-        }));
-        await updateRainNotification(formattedRainfall);
-    }
+  if (payload && payload.type === 'RAIN_UPDATE' && Array.isArray(payload.rainfall)) {
+    console.log('[BG TASK] Processing Rain Data from Silent Push...');
+    await updateRainNotification(payload.rainfall);
   }
 });
 
@@ -170,17 +159,8 @@ export function setupPushNotificationListeners() {
     const data = notification.request.content.data;
     console.log('Push Notification Received (Foreground):', data);
 
-    if (data && data.type === 'RAIN_UPDATE') {
-        if (Array.isArray(data.rainfall)) {
-            updateRainNotification(data.rainfall);
-        } else if (data.updatedTime && Array.isArray(data.rainfallNowcast)) {
-            const formattedRainfall = data.rainfallNowcast.map((amount: number, index: number) => ({
-                updateTime: data.updatedTime,
-                endTime: addMinutesToHKOTime(data.updatedTime, (index + 1) * 30),
-                amount: amount
-            }));
-            updateRainNotification(formattedRainfall);
-        }
+    if (data && data.type === 'RAIN_UPDATE' && Array.isArray(data.rainfall)) {
+      updateRainNotification(data.rainfall);
     }
   });
 

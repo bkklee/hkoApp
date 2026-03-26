@@ -87,7 +87,7 @@ export async function fetch9DayForecast(): Promise<ForecastData[]> {
   }
 }
 
-export function addMinutesToHKOTime(hkoTime: string, minsToAdd: number): string {
+function addMinutesToHKOTime(hkoTime: string, minsToAdd: number): string {
   const year = parseInt(hkoTime.slice(0, 4));
   const month = parseInt(hkoTime.slice(4, 6)) - 1;
   const day = parseInt(hkoTime.slice(6, 8));
