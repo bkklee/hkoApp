@@ -1,126 +1,17 @@
 import * as Notifications from 'expo-notifications';
 import * as Device from 'expo-device';
 import * as TaskManager from 'expo-task-manager';
-import Constants from 'expo-constants';
 import { Platform } from 'react-native';
 
 const BACKGROUND_NOTIFICATION_TASK = 'BACKGROUND-NOTIFICATION-TASK';
 
-// Define the task that handles silent pushes in the background
-TaskManager.defineTask(BACKGROUND_NOTIFICATION_TASK, async ({ data, error, executionContext }) => {
-  if (error) {
-    console.error('Background Notification Task Error:', error);
-    return;
-  }
-  
-  const notification = (data as any).notification;
-  const payload = notification?.request?.content?.data;
-
-  if (payload && payload.type === 'RAIN_UPDATE' && Array.isArray(payload.rainfall)) {
-    console.log('[BG TASK] Processing Rain Data from Silent Push...');
-    await updateRainNotification(payload.rainfall);
-  }
-});
-
-// Set up default notification handler
-Notifications.setNotificationHandler({
-  handleNotification: async () => ({
-    shouldShowAlert: true,
-    shouldPlaySound: true,
-    shouldSetBadge: true,
-    // Add missing properties for newer Expo versions
-    priority: Notifications.AndroidNotificationPriority.HIGH,
-  }),
-});
-
-export async function requestNotificationPermissions() {
-  const { status: existingStatus } = await Notifications.getPermissionsAsync();
-  let finalStatus = existingStatus;
-  if (existingStatus !== 'granted') {
-    const { status } = await Notifications.requestPermissionsAsync();
-    finalStatus = status;
-  }
-  return finalStatus === 'granted';
-}
-
-/**
- * Register for Expo Push Token
- * This is the first step for Silent Push Notifications
- */
-export async function registerForPushNotificationsAsync() {
-  if (!Device.isDevice) {
-    console.warn('Must use physical device for Push Notifications');
-    return null;
-  }
-
-  const { status: existingStatus } = await Notifications.getPermissionsAsync();
-  let finalStatus = existingStatus;
-  if (existingStatus !== 'granted') {
-    const { status } = await Notifications.requestPermissionsAsync();
-    finalStatus = status;
-  }
-  if (finalStatus !== 'granted') {
-    console.error('Failed to get push token for push notification!');
-    return null;
-  }
-
-  try {
-    // SWITCHED: Use getDevicePushTokenAsync for native APNs/FCM tokens
-    const pushToken = (await Notifications.getDevicePushTokenAsync()).data;
-    console.log('--- NATIVE DEVICE TOKEN READY ---');
-    console.log(pushToken); // This will be the hex string Apple expects
-    
-    return pushToken;
-  } catch (e) {
-    console.error('Error getting native push token:', e);
-    return null;
-  }
-}
-
-const BACKGROUND_NOTIFICATION_TASK = 'BACKGROUND-NOTIFICATION-TASK';
-
-/**
- * Register the background task (for when app is killed)
- * This must be called early in the app lifecycle.
- */
-export async function registerBackgroundNotificationTask() {
-  if (Platform.OS !== 'ios') return;
-  
-  try {
-    const isRegistered = await TaskManager.isTaskRegisteredAsync(BACKGROUND_NOTIFICATION_TASK);
-    if (!isRegistered) {
-      await Notifications.registerTaskAsync(BACKGROUND_NOTIFICATION_TASK);
-      console.log('Background Notification Task Registered');
-    }
-  } catch (e) {
-    console.error('Failed to register background notification task:', e);
-  }
-}
-
-/**
- * Listener for incoming data (Silent or Visible)
- * This handles the "wake up" logic when a push arrives
- */
-export function setupPushNotificationListeners() {
-  // Foreground listener
-  const subscription = Notifications.addNotificationReceivedListener(notification => {
-    const data = notification.request.content.data;
-    console.log('Push Notification Received (Foreground):', data);
-
-    // If the server sends rain data in the push payload:
-    if (data && data.type === 'RAIN_UPDATE' && Array.isArray(data.rainfall)) {
-      console.log('Processing Rain Data from Silent Push...');
-      updateRainNotification(data.rainfall);
-    }
-  });
-
-  return subscription;
-}
-
 let lastNotificationBody = '';
 
+/**
+ * Common logic to update or dismiss the rain notification
+ */
 export async function updateRainNotification(rainfall: { amount: number, endTime: string }[]) {
-  if (rainfall.length === 0) return;
+  if (!rainfall || rainfall.length === 0) return;
 
   const currentRain = rainfall[0].amount;
   const anyRainLater = rainfall.some(r => r.amount >= 0.05);
@@ -172,4 +63,106 @@ export async function updateRainNotification(rainfall: { amount: number, endTime
       console.error('Failed to schedule notification:', e);
     }
   }
+}
+
+// Define the task that handles silent pushes in the background
+// Must be defined in the global scope
+TaskManager.defineTask(BACKGROUND_NOTIFICATION_TASK, async ({ data, error }) => {
+  if (error) {
+    console.error('Background Notification Task Error:', error);
+    return;
+  }
+  
+  const notification = (data as any).notification;
+  const payload = notification?.request?.content?.data;
+
+  if (payload && payload.type === 'RAIN_UPDATE' && Array.isArray(payload.rainfall)) {
+    console.log('[BG TASK] Processing Rain Data from Silent Push...');
+    await updateRainNotification(payload.rainfall);
+  }
+});
+
+// Set up default notification handler
+Notifications.setNotificationHandler({
+  handleNotification: async () => ({
+    shouldShowAlert: true,
+    shouldPlaySound: true,
+    shouldSetBadge: true,
+    shouldShowBanner: true,
+    shouldShowList: true,
+  }),
+});
+
+export async function requestNotificationPermissions() {
+  const { status: existingStatus } = await Notifications.getPermissionsAsync();
+  let finalStatus = existingStatus;
+  if (existingStatus !== 'granted') {
+    const { status } = await Notifications.requestPermissionsAsync();
+    finalStatus = status;
+  }
+  return finalStatus === 'granted';
+}
+
+/**
+ * Register for Native Device Token
+ */
+export async function registerForPushNotificationsAsync() {
+  if (!Device.isDevice) {
+    console.warn('Must use physical device for Push Notifications');
+    return null;
+  }
+
+  const { status: existingStatus } = await Notifications.getPermissionsAsync();
+  let finalStatus = existingStatus;
+  if (existingStatus !== 'granted') {
+    const { status } = await Notifications.requestPermissionsAsync();
+    finalStatus = status;
+  }
+  if (finalStatus !== 'granted') {
+    console.error('Failed to get push token for push notification!');
+    return null;
+  }
+
+  try {
+    const pushToken = (await Notifications.getDevicePushTokenAsync()).data;
+    console.log('--- NATIVE DEVICE TOKEN READY ---');
+    console.log(pushToken);
+    return pushToken;
+  } catch (e) {
+    console.error('Error getting native push token:', e);
+    return null;
+  }
+}
+
+/**
+ * Register the background task (for when app is killed)
+ */
+export async function registerBackgroundNotificationTask() {
+  if (Platform.OS !== 'ios') return;
+  
+  try {
+    const isRegistered = await TaskManager.isTaskRegisteredAsync(BACKGROUND_NOTIFICATION_TASK);
+    if (!isRegistered) {
+      await Notifications.registerTaskAsync(BACKGROUND_NOTIFICATION_TASK);
+      console.log('Background Notification Task Registered');
+    }
+  } catch (e) {
+    console.error('Failed to register background notification task:', e);
+  }
+}
+
+/**
+ * Foreground listener
+ */
+export function setupPushNotificationListeners() {
+  const subscription = Notifications.addNotificationReceivedListener(notification => {
+    const data = notification.request.content.data;
+    console.log('Push Notification Received (Foreground):', data);
+
+    if (data && data.type === 'RAIN_UPDATE' && Array.isArray(data.rainfall)) {
+      updateRainNotification(data.rainfall);
+    }
+  });
+
+  return subscription;
 }
