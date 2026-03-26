@@ -20,7 +20,8 @@
         "UIBackgroundModes": [
           "location",
           "fetch",
-          "processing"
+          "processing",
+          "remote-notification"
         ]
       }
     },

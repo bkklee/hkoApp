@@ -4,10 +4,43 @@ import * as BackgroundTask from 'expo-background-task';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Alert, Linking, Platform } from 'react-native';
 import { fetchRainfallNowcast } from './weather';
-import { updateRainNotification, requestNotificationPermissions } from './notifications';
+import { updateRainNotification, requestNotificationPermissions, registerForPushNotificationsAsync } from './notifications';
 
 export const BACKGROUND_RAIN_TASK = 'background-rain-check';
 export const LAST_BG_SYNC_KEY = 'last-background-sync';
+
+/**
+ * Update your server with the current push token and coordinates.
+ * This is the core of how Silent Push works.
+ */
+async function registerLocationWithServer(latitude: number, longitude: number) {
+  const pushToken = await registerForPushNotificationsAsync();
+  if (!pushToken) return;
+
+  try {
+    const response = await fetch('https://kklee.dev/api/register-device', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        token: pushToken,
+        latitude: latitude,
+        longitude: longitude,
+        bundleId: 'com.kklee.rainyhk', // Matches your app.json
+        platform: Platform.OS,
+      }),
+    });
+
+    if (response.ok) {
+      console.log(`[Push Server] Registered: ${latitude.toFixed(3)}, ${longitude.toFixed(3)}`);
+    } else {
+      console.error('[Push Server] Registration failed:', response.status);
+    }
+  } catch (error) {
+    console.error('[Push Server] Network error:', error);
+  }
+}
 
 // Define the background task
 TaskManager.defineTask(BACKGROUND_RAIN_TASK, async ({ data, error }) => {
@@ -42,6 +75,10 @@ TaskManager.defineTask(BACKGROUND_RAIN_TASK, async ({ data, error }) => {
 
     console.log(`[${nowStr}] BG EXECUTION: Rain check for ${latitude.toFixed(3)}, ${longitude.toFixed(3)}`);
 
+    // 1. (NEW) Update server so it knows where to send Silent Pushes
+    await registerLocationWithServer(latitude, longitude);
+
+    // 2. (OLD) Still perform local check for transition period
     const rainData = await fetchRainfallNowcast(latitude, longitude);
     await updateRainNotification(rainData);
     
@@ -61,6 +98,9 @@ export async function startBackgroundTracker() {
     console.log(`Initial Status: Task registered = ${isTaskRegistered}`);
 
     await requestNotificationPermissions();
+    
+    // Attempt to get push token early
+    await registerForPushNotificationsAsync();
 
     const { status: foregroundStatus } = await Location.requestForegroundPermissionsAsync();
     if (foregroundStatus !== 'granted') return false;

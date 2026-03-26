@@ -1,5 +1,16 @@
 import * as Notifications from 'expo-notifications';
+import * as Device from 'expo-device';
+import Constants from 'expo-constants';
 import { Platform } from 'react-native';
+
+// Set up default notification handler
+Notifications.setNotificationHandler({
+  handleNotification: async () => ({
+    shouldShowAlert: true,
+    shouldPlaySound: true,
+    shouldSetBadge: true,
+  }),
+});
 
 export async function requestNotificationPermissions() {
   const { status: existingStatus } = await Notifications.getPermissionsAsync();
@@ -11,14 +22,66 @@ export async function requestNotificationPermissions() {
   return finalStatus === 'granted';
 }
 
-// Set up default notification handler
-Notifications.setNotificationHandler({
-  handleNotification: async () => ({
-    shouldShowAlert: true,
-    shouldPlaySound: true,
-    shouldSetBadge: true,
-  }),
-});
+/**
+ * Register for Expo Push Token
+ * This is the first step for Silent Push Notifications
+ */
+export async function registerForPushNotificationsAsync() {
+  if (!Device.isDevice) {
+    console.warn('Must use physical device for Push Notifications');
+    return null;
+  }
+
+  const { status: existingStatus } = await Notifications.getPermissionsAsync();
+  let finalStatus = existingStatus;
+  if (existingStatus !== 'granted') {
+    const { status } = await Notifications.requestPermissionsAsync();
+    finalStatus = status;
+  }
+  if (finalStatus !== 'granted') {
+    console.error('Failed to get push token for push notification!');
+    return null;
+  }
+
+  const projectId = Constants?.expoConfig?.extra?.eas?.projectId ?? Constants?.easConfig?.projectId;
+  if (!projectId) {
+    console.error('Project ID not found in app.json (extra.eas.projectId)');
+    return null;
+  }
+
+  try {
+    const pushToken = (await Notifications.getExpoPushTokenAsync({ projectId })).data;
+    console.log('--- EXPO PUSH TOKEN READY ---');
+    console.log(pushToken);
+    
+    // In a real app, you would POST this token and current location to your server here:
+    // await fetch('https://your-api.com/register', { ... })
+    
+    return pushToken;
+  } catch (e) {
+    console.error('Error getting push token:', e);
+    return null;
+  }
+}
+
+/**
+ * Listener for incoming data (Silent or Visible)
+ * This handles the "wake up" logic when a push arrives
+ */
+export function setupPushNotificationListeners() {
+  const subscription = Notifications.addNotificationReceivedListener(notification => {
+    const data = notification.request.content.data;
+    console.log('Push Notification Received:', data);
+
+    // If the server sends rain data in the push payload:
+    if (data && data.type === 'RAIN_UPDATE' && Array.isArray(data.rainfall)) {
+      console.log('Processing Rain Data from Silent Push...');
+      updateRainNotification(data.rainfall);
+    }
+  });
+
+  return subscription;
+}
 
 let lastNotificationBody = '';
 
