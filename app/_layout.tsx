@@ -10,10 +10,18 @@ export default function RootLayout() {
     startBackgroundTracker(); 
     
     // Set up listeners for new Push Notifications (Silent Data Pushes)
-    const subscription = setupPushNotificationListeners();
+    let subscription: { remove: () => void } | undefined;
+    
+    const initNotifications = async () => {
+      subscription = await setupPushNotificationListeners();
+    };
+    
+    initNotifications();
 
     return () => {
-      subscription.remove();
+      if (subscription) {
+        subscription.remove();
+      }
     };
   }, []);
 

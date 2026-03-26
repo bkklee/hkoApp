@@ -1,7 +1,26 @@
 import * as Notifications from 'expo-notifications';
 import * as Device from 'expo-device';
+import * as TaskManager from 'expo-task-manager';
 import Constants from 'expo-constants';
 import { Platform } from 'react-native';
+
+const BACKGROUND_NOTIFICATION_TASK = 'BACKGROUND-NOTIFICATION-TASK';
+
+// Define the task that handles silent pushes in the background
+TaskManager.defineTask(BACKGROUND_NOTIFICATION_TASK, async ({ data, error, executionContext }) => {
+  if (error) {
+    console.error('Background Notification Task Error:', error);
+    return;
+  }
+  
+  const notification = (data as any).notification;
+  const payload = notification?.request?.content?.data;
+
+  if (payload && payload.type === 'RAIN_UPDATE' && Array.isArray(payload.rainfall)) {
+    console.log('[BG TASK] Processing Rain Data from Silent Push...');
+    await updateRainNotification(payload.rainfall);
+  }
+});
 
 // Set up default notification handler
 Notifications.setNotificationHandler({
@@ -60,10 +79,21 @@ export async function registerForPushNotificationsAsync() {
  * Listener for incoming data (Silent or Visible)
  * This handles the "wake up" logic when a push arrives
  */
-export function setupPushNotificationListeners() {
+export async function setupPushNotificationListeners() {
+  // 1. Register the background task (for when app is killed)
+  if (Platform.OS === 'ios') {
+    try {
+      await Notifications.registerTaskAsync(BACKGROUND_NOTIFICATION_TASK);
+      console.log('Background Notification Task Registered');
+    } catch (e) {
+      console.error('Failed to register background notification task:', e);
+    }
+  }
+
+  // 2. Foreground listener
   const subscription = Notifications.addNotificationReceivedListener(notification => {
     const data = notification.request.content.data;
-    console.log('Push Notification Received:', data);
+    console.log('Push Notification Received (Foreground):', data);
 
     // If the server sends rain data in the push payload:
     if (data && data.type === 'RAIN_UPDATE' && Array.isArray(data.rainfall)) {
