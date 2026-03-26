@@ -26,6 +26,8 @@ async function registerLocationWithServer(latitude: number, longitude: number) {
       body: JSON.stringify({
         token: pushToken,
         bundleId: 'com.kklee.rainyhk', 
+        latitude: latitude,
+        longitude: longitude,
       }),
     });
 
