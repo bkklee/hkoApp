@@ -2,6 +2,7 @@ import * as Notifications from 'expo-notifications';
 import * as Device from 'expo-device';
 import * as TaskManager from 'expo-task-manager';
 import { Platform } from 'react-native';
+import { addMinutesToHKOTime } from './weather';
 
 const BACKGROUND_NOTIFICATION_TASK = 'BACKGROUND-NOTIFICATION-TASK';
 
@@ -76,9 +77,14 @@ TaskManager.defineTask(BACKGROUND_NOTIFICATION_TASK, async ({ data, error }) => 
   const notification = (data as any).notification;
   const payload = notification?.request?.content?.data;
 
-  if (payload && payload.type === 'rainfall_update' && Array.isArray(payload.rainfallNowcast)) {
-    console.log('[BG TASK] Processing Rain Data from Silent Push...');
-    await updateRainNotification(payload.rainfallNowcast);
+  if (payload && payload.type === 'rainfall_update' && payload.updatedTime && Array.isArray(payload.rainfallNowcast)) {
+    console.log('[BG TASK] Transforming and Processing Rain Data...');
+    const formattedRainfall = payload.rainfallNowcast.map((amount: number, index: number) => ({
+      updateTime: payload.updatedTime,
+      endTime: addMinutesToHKOTime(payload.updatedTime, (index + 1) * 30),
+      amount: amount
+    }));
+    await updateRainNotification(formattedRainfall);
   }
 });
 
@@ -159,8 +165,13 @@ export function setupPushNotificationListeners() {
     const data = notification.request.content.data;
     console.log('Push Notification Received (Foreground):', data);
 
-    if (data && data.type === 'rainfall_update' && Array.isArray(data.rainfallNowcast)) {
-      updateRainNotification(data.rainfallNowcast);
+    if (data && data.type === 'rainfall_update' && data.updatedTime && Array.isArray(data.rainfallNowcast)) {
+      const formattedRainfall = data.rainfallNowcast.map((amount: number, index: number) => ({
+        updateTime: data.updatedTime,
+        endTime: addMinutesToHKOTime(data.updatedTime, (index + 1) * 30),
+        amount: amount
+      }));
+      updateRainNotification(formattedRainfall);
     }
   });
 
