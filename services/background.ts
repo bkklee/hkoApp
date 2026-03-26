@@ -25,10 +25,7 @@ async function registerLocationWithServer(latitude: number, longitude: number) {
       },
       body: JSON.stringify({
         token: pushToken,
-        latitude: latitude,
-        longitude: longitude,
-        bundleId: 'com.kklee.rainyhk', // Matches your app.json
-        platform: Platform.OS,
+        bundleId: 'com.kklee.rainyhk', 
       }),
     });
 
