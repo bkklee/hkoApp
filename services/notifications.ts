@@ -43,23 +43,15 @@ export async function registerForPushNotificationsAsync() {
     return null;
   }
 
-  const projectId = Constants?.expoConfig?.extra?.eas?.projectId ?? Constants?.easConfig?.projectId;
-  if (!projectId) {
-    console.error('Project ID not found in app.json (extra.eas.projectId)');
-    return null;
-  }
-
   try {
-    const pushToken = (await Notifications.getExpoPushTokenAsync({ projectId })).data;
-    console.log('--- EXPO PUSH TOKEN READY ---');
-    console.log(pushToken);
-    
-    // In a real app, you would POST this token and current location to your server here:
-    // await fetch('https://your-api.com/register', { ... })
+    // SWITCHED: Use getDevicePushTokenAsync for native APNs/FCM tokens
+    const pushToken = (await Notifications.getDevicePushTokenAsync()).data;
+    console.log('--- NATIVE DEVICE TOKEN READY ---');
+    console.log(pushToken); // This will be the hex string Apple expects
     
     return pushToken;
   } catch (e) {
-    console.error('Error getting push token:', e);
+    console.error('Error getting native push token:', e);
     return null;
   }
 }
