@@ -28,6 +28,8 @@ Notifications.setNotificationHandler({
     shouldShowAlert: true,
     shouldPlaySound: true,
     shouldSetBadge: true,
+    // Add missing properties for newer Expo versions
+    priority: Notifications.AndroidNotificationPriority.HIGH,
   }),
 });
 
