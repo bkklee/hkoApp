@@ -34,17 +34,17 @@ export const WeatherDisplay: React.FC<WeatherDisplayProps> = ({
   }, []);
 
   const getWarningStatus = (data: RainfallNowcast[]) => {
-    if (!data || data.length === 0) return { color: '#4CAF50', label: 'ALL CLEAR' };
+    if (!data || data.length === 0) return { color: '#4CAF50', label: '天氣良好' };
     const amounts = data.map(d => d.amount);
     const any30m = Math.max(...amounts);
     const sum60m = (amounts[0] || 0) + (amounts[1] || 0);
     const sum120m = amounts.reduce((a, b) => a + b, 0);
 
-    if (any30m > 45 || sum60m > 70 || sum120m > 100) return { color: '#000000', label: 'BLACK RAIN', textColor: '#FFF', borderColor: '#FFF' };
-    if (any30m > 35 || sum60m > 50 || sum120m > 70) return { color: '#FF5252', label: 'RED RAIN' };
-    if (any30m > 20 || sum60m > 30 || sum120m > 50) return { color: '#FFEB3B', label: 'YELLOW RAIN' };
-    if (any30m >= 0.05) return { color: '#40C4FF', label: 'RAINING' };
-    return { color: '#4CAF50', label: 'ALL CLEAR' };
+    if (any30m > 45 || sum60m > 70 || sum120m > 100) return { color: '#000000', label: '預測：達黑雨標準', textColor: '#FFF', borderColor: '#FFF' };
+    if (any30m > 35 || sum60m > 50 || sum120m > 70) return { color: '#FF5252', label: '預測：達紅雨標準' };
+    if (any30m > 20 || sum60m > 30 || sum120m > 50) return { color: '#FFEB3B', label: '預測：達黃雨標準' };
+    if (any30m >= 0.05) return { color: '#40C4FF', label: '預測：有雨' };
+    return { color: '#4CAF50', label: '天氣良好' };
   };
 
   const status = getWarningStatus(rainfall);
@@ -96,12 +96,13 @@ export const WeatherDisplay: React.FC<WeatherDisplayProps> = ({
           {isUserLocation && <Ionicons name="navigate-sharp" size={isPad ? 18 : 14} color={mainColor === '#000000' ? '#FFF' : mainColor} style={{ marginRight: 6 }} />}
           <Text style={isPad ? styles.stationNamePad : styles.stationName}>{station}</Text>
         </View>
-        {status.label !== 'ALL CLEAR' && status.label !== 'RAINING' && (
+        {status.label !== '天氣良好' && status.label !== '預測：有雨' && (
           <View style={[styles.warningBadge, { backgroundColor: mainColor, borderColor: status.borderColor || mainColor }]}>
             <Text style={[styles.warningBadgeText, { color: status.textColor || '#000' }]}>{status.label}</Text>
           </View>
         )}
-      </View>
+        </View>
+
 
       <View style={isPad ? (isLandscape ? styles.tempHeroPadSmall : styles.tempHeroPad) : styles.tempHero}>
         <Text style={isPad ? (isLandscape ? styles.mainTempPadSmall : styles.mainTempPad) : styles.mainTemp}>{Math.round(temp)}<Text style={styles.degreeUnit}>°C</Text></Text>
