@@ -18,6 +18,7 @@ export interface ForecastData {
 
 export interface RainfallNowcast {
   updateTime: string;
+  startTime: string;
   endTime: string;
   amount: number;
 }
@@ -131,7 +132,12 @@ async function fetchHKORainfallFallback(userLat: number, userLon: number): Promi
       if (parts.length < 5) continue;
       const lat = parseFloat(parts[2]).toFixed(3), lon = parseFloat(parts[3]).toFixed(3);
       if (lat === targetLatStr && lon === targetLonStr) {
-        results.push({ updateTime: parts[0], endTime: parts[1], amount: parseFloat(parts[4]) });
+        results.push({ 
+          updateTime: parts[0], 
+          startTime: addMinutesToHKOTime(parts[1], -30),
+          endTime: parts[1], 
+          amount: parseFloat(parts[4]) 
+        });
       }
       if (results.length === 4) break;
     }
@@ -150,6 +156,7 @@ export async function fetchRainfallNowcast(userLat: number, userLon: number): Pr
     const updatedTime = data.updatedTime;
     return data.rainfallNowcast.map((amount: number, index: number) => ({
       updateTime: updatedTime,
+      startTime: addMinutesToHKOTime(updatedTime, index * 30),
       endTime: addMinutesToHKOTime(updatedTime, (index + 1) * 30),
       amount: amount
     }));

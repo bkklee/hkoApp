@@ -11,7 +11,7 @@ let lastNotificationBody = '';
 /**
  * Common logic to update or dismiss the rain notification
  */
-export async function updateRainNotification(rainfall: { amount: number, endTime: string }[]) {
+export async function updateRainNotification(rainfall: { amount: number, startTime: string, endTime: string }[]) {
   if (!rainfall || rainfall.length === 0) return;
 
   const currentRain = rainfall[0].amount;
@@ -23,7 +23,8 @@ export async function updateRainNotification(rainfall: { amount: number, endTime
   if (currentRain >= 0.05) {
     const firstDryIndex = rainfall.findIndex(r => r.amount < 0.05);
     if (firstDryIndex !== -1) {
-      const stopTime = rainfall[firstDryIndex].endTime;
+      // The rain stops at the start of the first dry bucket
+      const stopTime = rainfall[firstDryIndex].startTime;
       const formattedStopTime = `${stopTime.slice(8, 10)}:${stopTime.slice(10, 12)}`;
       title = '☔ 正在下雨';
       body = `預計雨勢將於 ${formattedStopTime} 左右停止。`;
@@ -33,7 +34,7 @@ export async function updateRainNotification(rainfall: { amount: number, endTime
     }
   } else if (anyRainLater) {
     const firstRainIndex = rainfall.findIndex(r => r.amount >= 0.05);
-    const startTime = rainfall[firstRainIndex].endTime;
+    const startTime = rainfall[firstRainIndex].startTime;
     const formattedStartTime = `${startTime.slice(8, 10)}:${startTime.slice(10, 12)}`;
     const rainAmount = rainfall[firstRainIndex].amount;
     
@@ -81,6 +82,7 @@ TaskManager.defineTask(BACKGROUND_NOTIFICATION_TASK, async ({ data, error }) => 
     console.log('[BG TASK] Transforming and Processing Rain Data...');
     const formattedRainfall = payload.rainfallNowcast.map((amount: number, index: number) => ({
       updateTime: payload.updatedTime,
+      startTime: addMinutesToHKOTime(payload.updatedTime, index * 30),
       endTime: addMinutesToHKOTime(payload.updatedTime, (index + 1) * 30),
       amount: amount
     }));
@@ -168,6 +170,7 @@ export function setupPushNotificationListeners() {
     if (data && data.type === 'rainfall_update' && data.updatedTime && Array.isArray(data.rainfallNowcast)) {
       const formattedRainfall = data.rainfallNowcast.map((amount: number, index: number) => ({
         updateTime: data.updatedTime,
+        startTime: addMinutesToHKOTime(data.updatedTime, index * 30),
         endTime: addMinutesToHKOTime(data.updatedTime, (index + 1) * 30),
         amount: amount
       }));

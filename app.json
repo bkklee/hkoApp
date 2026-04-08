@@ -2,7 +2,7 @@
   "expo": {
     "name": "Rainy HK",
     "slug": "hkoApp",
-    "version": "1.0.0",
+    "version": "1.0.1",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
     "scheme": "rainyhk",
@@ -11,7 +11,7 @@
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.kklee.rainyhk",
-      "buildNumber": "3",
+      "buildNumber": "4",
       "infoPlist": {
         "ITSAppUsesNonExemptEncryption": false,
         "NSLocationWhenInUseUsageDescription": "此應用程式需要您的位置以提供最準確的地區氣溫及降雨預報。",
