@@ -7,6 +7,7 @@ import { addMinutesToHKOTime } from './weather';
 const BACKGROUND_NOTIFICATION_TASK = 'BACKGROUND-NOTIFICATION-TASK';
 
 let lastNotificationBody = '';
+let lastNotificationTitle = '';
 
 /**
  * Common logic to update or dismiss the rain notification
@@ -43,24 +44,32 @@ export async function updateRainNotification(rainfall: { amount: number, startTi
   } else {
     await Notifications.dismissNotificationAsync('rain-alert');
     lastNotificationBody = '';
+    lastNotificationTitle = '';
     return;
   }
 
   // Only send if the message has changed to avoid bothering the user
   if (body !== lastNotificationBody) {
     try {
+      // Logic for "Just change the context":
+      // If we already have a notification and the title (status) hasn't changed, 
+      // we update the body silently.
+      const shouldAlert = (title !== lastNotificationTitle);
+      
       await Notifications.scheduleNotificationAsync({
         identifier: 'rain-alert',
         content: {
           title,
           body,
           priority: Notifications.AndroidNotificationPriority.HIGH,
-          sound: true,
+          sound: shouldAlert, 
           sticky: true,
+          data: { isSilentUpdate: !shouldAlert }
         },
         trigger: null,
       });
       lastNotificationBody = body;
+      lastNotificationTitle = title;
     } catch (e) {
       console.error('Failed to schedule notification:', e);
     }
@@ -92,15 +101,19 @@ TaskManager.defineTask(BACKGROUND_NOTIFICATION_TASK, async ({ data, error }) => 
 
 // Set up default notification handler
 Notifications.setNotificationHandler({
-  handleNotification: async () => ({
-    shouldShowAlert: true,
-    shouldPlaySound: true,
-    shouldSetBadge: true,
-    shouldShowBanner: true,
-    shouldShowList: true,
-  }),
-});
+  handleNotification: async (notification) => {
+    const data = notification.request.content.data;
+    const isSilentUpdate = data?.isSilentUpdate === true;
 
+    return {
+      shouldShowAlert: !isSilentUpdate,
+      shouldPlaySound: !isSilentUpdate,
+      shouldSetBadge: true,
+      shouldShowBanner: !isSilentUpdate,
+      shouldShowList: true,
+    };
+  },
+});
 export async function requestNotificationPermissions() {
   const { status: existingStatus } = await Notifications.getPermissionsAsync();
   let finalStatus = existingStatus;

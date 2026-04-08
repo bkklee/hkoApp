@@ -186,12 +186,13 @@ export default function HomeScreen() {
 
   return (
     <ScrollView 
-      style={styles.container} 
+      style={styles.container}
       contentContainerStyle={{ flexGrow: 1 }}
       refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#FFF" />}
     >
       {currentWeather && (
-        <WeatherDisplay 
+        <WeatherDisplay
+ 
           station={currentWeather.station}
           temp={currentWeather.temp}
           time={currentWeather.time}
