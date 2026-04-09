@@ -177,7 +177,7 @@ export async function registerBackgroundNotificationTask() {
  */
 export function setupPushNotificationListeners() {
   const subscription = Notifications.addNotificationReceivedListener(notification => {
-    const data = notification.request.content.data;
+    const data = notification.request.content.data as any;
     console.log('Push Notification Received (Foreground):', data);
 
     if (data && data.type === 'rainfall_update' && data.updatedTime && Array.isArray(data.rainfallNowcast)) {
