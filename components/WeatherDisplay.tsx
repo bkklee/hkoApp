@@ -98,10 +98,16 @@ export const WeatherDisplay: React.FC<WeatherDisplayProps> = ({
           <Text style={isPad ? styles.stationNamePad : styles.stationName}>{station}</Text>
           
           {locationStatus === 'denied' && (
-            <Ionicons name="alert-circle" size={18} color="#FF5252" style={{ marginLeft: 8 }} />
+            <View style={{ flexDirection: 'row', alignItems: 'center', marginLeft: 8 }}>
+              <Ionicons name="alert-circle" size={14} color="#FF5252" />
+              <Text style={{ color: '#FF5252', fontSize: 11, marginLeft: 4, fontWeight: '600' }}>無權限 (無通知)</Text>
+            </View>
           )}
           {locationStatus === 'foreground' && (
-            <Ionicons name="location" size={18} color="#FFEB3B" style={{ marginLeft: 8 }} />
+            <View style={{ flexDirection: 'row', alignItems: 'center', marginLeft: 8 }}>
+              <Ionicons name="location" size={14} color="#FFEB3B" />
+              <Text style={{ color: '#FFEB3B', fontSize: 11, marginLeft: 4, fontWeight: '600' }}>僅限使用中 (位置或不準)</Text>
+            </View>
           )}
         </View>
         {status.label !== '天氣良好' && status.label !== '預測：有雨' && (
