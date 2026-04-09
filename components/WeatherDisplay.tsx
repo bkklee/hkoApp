@@ -96,6 +96,13 @@ export const WeatherDisplay: React.FC<WeatherDisplayProps> = ({
         <View style={styles.locationRow}>
           {isUserLocation && <Ionicons name="navigate-sharp" size={isPad ? 18 : 14} color={mainColor === '#000000' ? '#FFF' : mainColor} style={{ marginRight: 6 }} />}
           <Text style={isPad ? styles.stationNamePad : styles.stationName}>{station}</Text>
+          
+          {locationStatus === 'denied' && (
+            <Ionicons name="alert-circle" size={18} color="#FF5252" style={{ marginLeft: 8 }} />
+          )}
+          {locationStatus === 'foreground' && (
+            <Ionicons name="location" size={18} color="#FFEB3B" style={{ marginLeft: 8 }} />
+          )}
         </View>
         {status.label !== '天氣良好' && status.label !== '預測：有雨' && (
           <View style={[styles.warningBadge, { backgroundColor: mainColor, borderColor: status.borderColor || mainColor }]}>
@@ -103,20 +110,6 @@ export const WeatherDisplay: React.FC<WeatherDisplayProps> = ({
           </View>
         )}
       </View>
-
-      {locationStatus === 'denied' && (
-        <View style={styles.permissionWarning}>
-          <Ionicons name="alert-circle-outline" size={16} color="#FF5252" />
-          <Text style={[styles.permissionWarningText, { color: '#FF5252' }]}>未開啟位置權限，您將無法收到降雨預警通知。</Text>
-        </View>
-      )}
-
-      {locationStatus === 'foreground' && (
-        <View style={styles.permissionWarning}>
-          <Ionicons name="location-outline" size={16} color="#FFEB3B" />
-          <Text style={[styles.permissionWarningText, { color: '#FFEB3B' }]}>目前僅允許在使用中存取位置。若要確保離開 App 後仍能收到準確的降雨通知，請將權限設定為「始終允許」。</Text>
-        </View>
-      )}
 
       <View style={isPad ? (isLandscape ? styles.tempHeroPadSmall : styles.tempHeroPad) : styles.tempHero}>
         <Text style={isPad ? (isLandscape ? styles.mainTempPadSmall : styles.mainTempPad) : styles.mainTemp}>{Math.round(temp)}<Text style={styles.degreeUnit}>°C</Text></Text>
