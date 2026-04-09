@@ -5,6 +5,7 @@ import { fetchWeatherData, fetch9DayForecast, fetchRainfallNowcast, WeatherData,
 import { updateRainNotification } from '../../services/notifications';
 import { WeatherDisplay } from '../../components/WeatherDisplay';
 import { STATIONS } from '../../constants/stations';
+import { startBackgroundTracker } from '../../services/background';
 
 // Rough HK Boundary check (Lat: 22.1 - 22.6, Lon: 113.8 - 114.5)
 const isPointInHK = (lat: number, lon: number) => {
@@ -114,9 +115,15 @@ export default function HomeScreen() {
               const rain = await fetchRainfallNowcast(defaultStation.lat, defaultStation.lon).catch(() => []);
               setRainfall(rain);
               await updateRainNotification(rain);
+              
+              // Trigger background/notification flow even if location is denied
+              startBackgroundTracker();
               return;
             }
           }
+
+          // Once foreground is decided (either granted or denied above), trigger background flow
+          startBackgroundTracker();
 
           const location = await Promise.race([
             Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced }),

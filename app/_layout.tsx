@@ -6,20 +6,13 @@ import { setupPushNotificationListeners, registerBackgroundNotificationTask } fr
 
 export default function RootLayout() {
   useEffect(() => {
-    // 1. Wait a bit before starting background tasks so they don't fight 
-    // with the foreground location request in HomeScreen
-    const timer = setTimeout(() => {
-      startBackgroundTracker();
-    }, 2000);
-    
-    // 2. Register background push task (For when app is killed)
+    // Register background push task (For when app is killed)
     registerBackgroundNotificationTask();
 
-    // 3. Set up foreground listeners
+    // Set up foreground listeners
     const subscription = setupPushNotificationListeners();
 
     return () => {
-      clearTimeout(timer);
       subscription.remove();
     };
   }, []);
