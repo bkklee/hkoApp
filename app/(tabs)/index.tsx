@@ -19,6 +19,7 @@ export default function HomeScreen() {
   const [forecast, setForecast] = useState<ForecastData[]>([]);
   const [rainfall, setRainfall] = useState<RainfallNowcast[]>([]);
   const [isUserLocation, setIsUserLocation] = useState(false);
+  const [locationPermission, setLocationPermission] = useState<boolean>(true);
 
   const lastTargetStationRef = useRef<string | null>(null);
   const lastForecastUpdateRef = useRef<number>(0);
@@ -82,16 +83,22 @@ export default function HomeScreen() {
 
       const fetchLocationAndRefine = async () => {
         try {
-          const { status } = await Location.getForegroundPermissionsAsync();
-          if (status !== 'granted') {
+          const { status: fgStatus } = await Location.getForegroundPermissionsAsync();
+          const { status: bgStatus } = await Location.getBackgroundPermissionsAsync();
+          
+          if (fgStatus !== 'granted') {
             const req = await Location.requestForegroundPermissionsAsync();
             if (req.status !== 'granted') {
+              setLocationPermission(false);
               const rain = await fetchRainfallNowcast(defaultStation.lat, defaultStation.lon).catch(() => []);
               setRainfall(rain);
               await updateRainNotification(rain);
               return;
             }
           }
+
+          // If foreground is granted, check background for notification capability
+          setLocationPermission(bgStatus === 'granted');
 
           const location = await Promise.race([
             Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced }),
@@ -211,6 +218,7 @@ export default function HomeScreen() {
           forecast={forecast}
           rainfall={rainfall}
           isUserLocation={isUserLocation}
+          locationPermission={locationPermission}
           suggestUmbrellaLongTerm={currentWeather.suggestUmbrellaLongTerm}
           longTermLabel={currentWeather.longTermLabel}
         />

@@ -12,12 +12,13 @@ interface WeatherDisplayProps {
   forecast?: ForecastData[];
   rainfall?: RainfallNowcast[];
   isUserLocation?: boolean;
+  locationPermission?: boolean;
   suggestUmbrellaLongTerm?: boolean;
   longTermLabel?: string;
 }
 
 export const WeatherDisplay: React.FC<WeatherDisplayProps> = ({ 
-  station, temp, time, condition, forecast, rainfall = [], isUserLocation, suggestUmbrellaLongTerm, longTermLabel = '今日' 
+  station, temp, time, condition, forecast, rainfall = [], isUserLocation, locationPermission = true, suggestUmbrellaLongTerm, longTermLabel = '今日' 
 }) => {
   
   const { width, height } = useWindowDimensions();
@@ -101,8 +102,14 @@ export const WeatherDisplay: React.FC<WeatherDisplayProps> = ({
             <Text style={[styles.warningBadgeText, { color: status.textColor || '#000' }]}>{status.label}</Text>
           </View>
         )}
-        </View>
+      </View>
 
+      {!locationPermission && (
+        <View style={styles.permissionWarning}>
+          <Ionicons name="alert-circle-outline" size={16} color="rgba(255,255,255,0.6)" />
+          <Text style={styles.permissionWarningText}>未開啟位置權限，您將無法收到降雨預警通知。</Text>
+        </View>
+      )}
 
       <View style={isPad ? (isLandscape ? styles.tempHeroPadSmall : styles.tempHeroPad) : styles.tempHero}>
         <Text style={isPad ? (isLandscape ? styles.mainTempPadSmall : styles.mainTempPad) : styles.mainTemp}>{Math.round(temp)}<Text style={styles.degreeUnit}>°C</Text></Text>
@@ -213,6 +220,9 @@ const styles = StyleSheet.create({
   warningBadge: { paddingHorizontal: 8, paddingVertical: 4, borderRadius: 4, borderWidth: 1 },
   warningBadgeText: { fontSize: 10, fontWeight: '900' },
   
+  permissionWarning: { flexDirection: 'row', alignItems: 'center', backgroundColor: 'rgba(255,255,255,0.05)', padding: 10, borderRadius: 10, marginBottom: 15 },
+  permissionWarningText: { color: 'rgba(255,255,255,0.6)', fontSize: 12, marginLeft: 6 },
+
   tempHero: { marginBottom: 25 },
   tempHeroPad: { marginBottom: 20, alignItems: 'center' },
   tempHeroPadSmall: { marginBottom: 5, alignItems: 'center' },

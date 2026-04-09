@@ -115,9 +115,9 @@ export async function startBackgroundTracker() {
       if (bgReq !== 'granted') {
         Alert.alert(
           "需要背景位置權限",
-          "為了在背景持續為您監測降雨並發送即時通知，請將位置權限設定為「始終允許」。",
+          "您未開啟「始終允許」位置權限。這將導致應用程式無法在背景為您監測降雨，您將無法收到降雨預警通知。",
           [
-            { text: "取消", style: "cancel" },
+            { text: "我明白了", style: "cancel" },
             { text: "前往設定", onPress: () => Platform.OS === 'ios' ? Linking.openURL('app-settings:') : Linking.openSettings() }
           ]
         );
