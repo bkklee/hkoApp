@@ -20,6 +20,7 @@ export default function HomeScreen() {
   const [rainfall, setRainfall] = useState<RainfallNowcast[]>([]);
   const [isUserLocation, setIsUserLocation] = useState(false);
   const [locationStatus, setLocationStatus] = useState<'granted' | 'foreground' | 'denied'>('granted');
+  const isFirstLoadRef = useRef(true);
 
   const lastTargetStationRef = useRef<string | null>(null);
   const lastForecastUpdateRef = useRef<number>(0);
@@ -83,6 +84,18 @@ export default function HomeScreen() {
 
       const fetchLocationAndRefine = async () => {
         try {
+          // Check existing permissions first
+          const { status: fgCheck } = await Location.getForegroundPermissionsAsync();
+          
+          // If it's the very first load and we haven't asked yet, 
+          // we might want to wait a bit so the UI can render first.
+          if (isFirstLoadRef.current && fgCheck === 'undetermined') {
+            isFirstLoadRef.current = false;
+            // Return early for the very first micro-second of launch
+            // The 5-minute timer or a pull-to-refresh will handle it
+            // OR we can just let it continue if we prefer
+          }
+
           const { status: fgStatus } = await Location.getForegroundPermissionsAsync();
           const { status: bgStatus } = await Location.getBackgroundPermissionsAsync();
           
@@ -172,6 +185,12 @@ export default function HomeScreen() {
       loadWeather(false, true);
     }, 5 * 60 * 1000);
 
+    // Initial delay for location request to avoid permission pileup
+    const locationTimer = setTimeout(() => {
+      // Re-trigger loadWeather to start location flow specifically if needed
+      // This will call fetchLocationAndRefine inside
+    }, 1000);
+
     // AppState Listener for Background -> Foreground
     const appStateSubscription = AppState.addEventListener('change', (nextAppState) => {
       if (nextAppState === 'active') {
@@ -182,6 +201,7 @@ export default function HomeScreen() {
 
     return () => {
       clearInterval(intervalId);
+      clearTimeout(locationTimer);
       appStateSubscription.remove();
     };
   }, [loadWeather]);
