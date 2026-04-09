@@ -133,7 +133,11 @@ export const WeatherDisplay: React.FC<WeatherDisplayProps> = ({
             {rainfall.slice(0,4).map((item, i) => (
               <View key={i} style={{ width: barWidth, alignItems: 'center' }}>
                 <Text style={styles.barValueText}>{item.amount >= 0.05 ? item.amount.toFixed(1) : '0'}</Text>
-                <View style={[styles.continuousBar, { width: barWidth, height: Math.max(4, Math.min(item.amount * (isLandscape ? 30 : 35), isPad ? (isLandscape ? 80 : 90) : 70)), backgroundColor: item.amount >= 0.05 ? mainColor : 'rgba(255,255,255,0.05)' }]} />
+                <View style={[styles.continuousBar, { 
+                  width: barWidth, 
+                  height: Math.max(4, Math.min(item.amount * (isLandscape ? 30 : 35), isPad ? (isLandscape ? 80 : 90) : 70)), 
+                  backgroundColor: item.amount >= 0.05 ? (mainColor === '#000000' ? '#FFF' : mainColor) : 'rgba(255,255,255,0.05)' 
+                }]} />
               </View>
             ))}
           </View>
