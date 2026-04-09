@@ -27,6 +27,7 @@
       }
     },
     "android": {
+      "package": "com.kklee.rainyhk",
       "adaptiveIcon": {
         "foregroundImage": "./assets/images/icon.png",
         "backgroundColor": "#ffffff"
