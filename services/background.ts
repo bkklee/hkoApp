@@ -101,20 +101,28 @@ export async function startBackgroundTracker() {
     // Attempt to get push token early
     await registerForPushNotificationsAsync();
 
-    const { status: foregroundStatus } = await Location.requestForegroundPermissionsAsync();
-    if (foregroundStatus !== 'granted') return false;
+    // Check foreground permission first
+    const { status: fgCheck } = await Location.getForegroundPermissionsAsync();
+    if (fgCheck !== 'granted') {
+      const { status: fgReq } = await Location.requestForegroundPermissionsAsync();
+      if (fgReq !== 'granted') return false;
+    }
 
-    const { status: backgroundStatus } = await Location.requestBackgroundPermissionsAsync();
-    if (backgroundStatus !== 'granted') {
-      Alert.alert(
-        "需要背景位置權限",
-        "為了在背景持續為您監測降雨並發送即時通知，請將位置權限設定為「始終允許」。",
-        [
-          { text: "取消", style: "cancel" },
-          { text: "前往設定", onPress: () => Platform.OS === 'ios' ? Linking.openURL('app-settings:') : Linking.openSettings() }
-        ]
-      );
-      return false;
+    // Check background permission
+    const { status: bgCheck } = await Location.getBackgroundPermissionsAsync();
+    if (bgCheck !== 'granted') {
+      const { status: bgReq } = await Location.requestBackgroundPermissionsAsync();
+      if (bgReq !== 'granted') {
+        Alert.alert(
+          "需要背景位置權限",
+          "為了在背景持續為您監測降雨並發送即時通知，請將位置權限設定為「始終允許」。",
+          [
+            { text: "取消", style: "cancel" },
+            { text: "前往設定", onPress: () => Platform.OS === 'ios' ? Linking.openURL('app-settings:') : Linking.openSettings() }
+          ]
+        );
+        return false;
+      }
     }
 
     // 1. Register Background Fetch Task (Every 15 mins)

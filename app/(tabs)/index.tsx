@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
-import { StyleSheet, View, Text, ScrollView, RefreshControl } from 'react-native';
+import { StyleSheet, View, Text, ScrollView, RefreshControl, AppState } from 'react-native';
 import * as Location from 'expo-location';
 import { fetchWeatherData, fetch9DayForecast, fetchRainfallNowcast, WeatherData, ForecastData, RainfallNowcast } from '../../services/weather';
 import { updateRainNotification } from '../../services/notifications';
@@ -155,12 +155,23 @@ export default function HomeScreen() {
     // Initial Load
     loadWeather(true);
     
-    // Auto-refresh every 5 minutes - PASS isTimerUpdate=true to keep it silent
+    // Auto-refresh every 5 minutes
     const intervalId = setInterval(() => {
       loadWeather(false, true);
     }, 5 * 60 * 1000);
 
-    return () => clearInterval(intervalId);
+    // AppState Listener for Background -> Foreground
+    const appStateSubscription = AppState.addEventListener('change', (nextAppState) => {
+      if (nextAppState === 'active') {
+        console.log('App coming to foreground, refreshing...');
+        loadWeather(false, true); // Silent refresh when coming back
+      }
+    });
+
+    return () => {
+      clearInterval(intervalId);
+      appStateSubscription.remove();
+    };
   }, [loadWeather]);
 
   const onRefresh = useCallback(() => {
