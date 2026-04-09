@@ -12,13 +12,13 @@ interface WeatherDisplayProps {
   forecast?: ForecastData[];
   rainfall?: RainfallNowcast[];
   isUserLocation?: boolean;
-  locationPermission?: boolean;
+  locationStatus?: 'granted' | 'foreground' | 'denied';
   suggestUmbrellaLongTerm?: boolean;
   longTermLabel?: string;
 }
 
 export const WeatherDisplay: React.FC<WeatherDisplayProps> = ({ 
-  station, temp, time, condition, forecast, rainfall = [], isUserLocation, locationPermission = true, suggestUmbrellaLongTerm, longTermLabel = '今日' 
+  station, temp, time, condition, forecast, rainfall = [], isUserLocation, locationStatus = 'granted', suggestUmbrellaLongTerm, longTermLabel = '今日' 
 }) => {
   
   const { width, height } = useWindowDimensions();
@@ -104,10 +104,17 @@ export const WeatherDisplay: React.FC<WeatherDisplayProps> = ({
         )}
       </View>
 
-      {!locationPermission && (
+      {locationStatus === 'denied' && (
         <View style={styles.permissionWarning}>
-          <Ionicons name="alert-circle-outline" size={16} color="rgba(255,255,255,0.6)" />
-          <Text style={styles.permissionWarningText}>未開啟位置權限，您將無法收到降雨預警通知。</Text>
+          <Ionicons name="alert-circle-outline" size={16} color="#FF5252" />
+          <Text style={[styles.permissionWarningText, { color: '#FF5252' }]}>未開啟位置權限，您將無法收到降雨預警通知。</Text>
+        </View>
+      )}
+
+      {locationStatus === 'foreground' && (
+        <View style={styles.permissionWarning}>
+          <Ionicons name="location-outline" size={16} color="#FFEB3B" />
+          <Text style={[styles.permissionWarningText, { color: '#FFEB3B' }]}>目前僅允許在使用中存取位置。若要確保離開 App 後仍能收到準確的降雨通知，請將權限設定為「始終允許」。</Text>
         </View>
       )}
 

@@ -19,7 +19,7 @@ export default function HomeScreen() {
   const [forecast, setForecast] = useState<ForecastData[]>([]);
   const [rainfall, setRainfall] = useState<RainfallNowcast[]>([]);
   const [isUserLocation, setIsUserLocation] = useState(false);
-  const [locationPermission, setLocationPermission] = useState<boolean>(true);
+  const [locationStatus, setLocationStatus] = useState<'granted' | 'foreground' | 'denied'>('granted');
 
   const lastTargetStationRef = useRef<string | null>(null);
   const lastForecastUpdateRef = useRef<number>(0);
@@ -86,17 +86,18 @@ export default function HomeScreen() {
           const { status: fgStatus } = await Location.getForegroundPermissionsAsync();
           const { status: bgStatus } = await Location.getBackgroundPermissionsAsync();
           
-          // Show warning IF:
-          // 1. Foreground is denied (No location at all)
-          // 2. OR Foreground is granted but Background is NOT 'granted' (Always)
-          // Note: In iOS, 'granted' for background means the user chose "Change to Always Allow" 
-          // or already had it. If they chose "Allow Once" or "While in Use", bgStatus will not be 'granted'.
-          const hasFullPermissions = (fgStatus === 'granted' && bgStatus === 'granted');
-          setLocationPermission(hasFullPermissions);
+          if (fgStatus === 'granted' && bgStatus === 'granted') {
+            setLocationStatus('granted');
+          } else if (fgStatus === 'granted') {
+            setLocationStatus('foreground');
+          } else {
+            setLocationStatus('denied');
+          }
 
           if (fgStatus !== 'granted') {
             const req = await Location.requestForegroundPermissionsAsync();
             if (req.status !== 'granted') {
+              setLocationStatus('denied');
               const rain = await fetchRainfallNowcast(defaultStation.lat, defaultStation.lon).catch(() => []);
               setRainfall(rain);
               await updateRainNotification(rain);
@@ -222,7 +223,7 @@ export default function HomeScreen() {
           forecast={forecast}
           rainfall={rainfall}
           isUserLocation={isUserLocation}
-          locationPermission={locationPermission}
+          locationStatus={locationStatus}
           suggestUmbrellaLongTerm={currentWeather.suggestUmbrellaLongTerm}
           longTermLabel={currentWeather.longTermLabel}
         />
