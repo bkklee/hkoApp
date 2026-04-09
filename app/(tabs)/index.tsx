@@ -86,19 +86,23 @@ export default function HomeScreen() {
           const { status: fgStatus } = await Location.getForegroundPermissionsAsync();
           const { status: bgStatus } = await Location.getBackgroundPermissionsAsync();
           
+          // Show warning IF:
+          // 1. Foreground is denied (No location at all)
+          // 2. OR Foreground is granted but Background is NOT 'granted' (Always)
+          // Note: In iOS, 'granted' for background means the user chose "Change to Always Allow" 
+          // or already had it. If they chose "Allow Once" or "While in Use", bgStatus will not be 'granted'.
+          const hasFullPermissions = (fgStatus === 'granted' && bgStatus === 'granted');
+          setLocationPermission(hasFullPermissions);
+
           if (fgStatus !== 'granted') {
             const req = await Location.requestForegroundPermissionsAsync();
             if (req.status !== 'granted') {
-              setLocationPermission(false);
               const rain = await fetchRainfallNowcast(defaultStation.lat, defaultStation.lon).catch(() => []);
               setRainfall(rain);
               await updateRainNotification(rain);
               return;
             }
           }
-
-          // If foreground is granted, check background for notification capability
-          setLocationPermission(bgStatus === 'granted');
 
           const location = await Promise.race([
             Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced }),
