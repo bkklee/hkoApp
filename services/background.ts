@@ -16,7 +16,7 @@ let starting = false;
  * Update your server with the current push token and coordinates.
  * This is the core of how Silent Push works.
  */
-async function registerLocationWithServer(latitude: number, longitude: number) {
+export async function registerLocationWithServer(latitude: number, longitude: number) {
   const pushToken = await registerForPushNotificationsAsync();
   if (!pushToken) return;
 

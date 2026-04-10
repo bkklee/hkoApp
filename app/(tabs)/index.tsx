@@ -5,7 +5,7 @@ import { fetchWeatherData, fetch9DayForecast, fetchRainfallNowcast, WeatherData,
 import { updateRainNotification } from '../../services/notifications';
 import { WeatherDisplay } from '../../components/WeatherDisplay';
 import { STATIONS } from '../../constants/stations';
-import { startBackgroundTracker } from '../../services/background';
+import { startBackgroundTracker, registerLocationWithServer } from '../../services/background';
 
 // Rough HK Boundary check (Lat: 22.1 - 22.6, Lon: 113.8 - 114.5)
 const isPointInHK = (lat: number, lon: number) => {
@@ -151,6 +151,9 @@ export default function HomeScreen() {
                 lastTargetStationRef.current = targetStation.name;
                 const refinedMatchedData = allWeatherData.find(d => d.station === targetStation.name) || initialMatchedData;
                 setCurrentWeather({ ...refinedMatchedData, condition, suggestUmbrellaLongTerm, longTermLabel });
+                
+                // (NEW) Register with server in foreground
+                registerLocationWithServer(latitude, longitude);
             } else {
                 setIsUserLocation(false);
                 lastTargetStationRef.current = defaultStation.name;
@@ -158,7 +161,13 @@ export default function HomeScreen() {
                 setCurrentWeather({ ...hkoData, condition, suggestUmbrellaLongTerm, longTermLabel });
                 targetLat = defaultStation.lat;
                 targetLon = defaultStation.lon;
+
+                // (NEW) Register with server using default HKO station
+                registerLocationWithServer(targetLat, targetLon);
             }
+          } else {
+            // (NEW) Register with server using default station if GPS timeout
+            registerLocationWithServer(targetLat, targetLon);
           }
 
           const rain = await fetchRainfallNowcast(targetLat, targetLon).catch(() => []);
