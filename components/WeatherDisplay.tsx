@@ -92,29 +92,22 @@ export const WeatherDisplay: React.FC<WeatherDisplayProps> = ({
 
   const renderContent = () => (
     <>
-      {locationStatus === 'denied' && (
-        <View style={[styles.permissionWarning, { backgroundColor: '#FF525220' }]}>
-          <Ionicons name="alert-circle" size={16} color="#FF5252" />
-          <Text style={[styles.permissionWarningText, { color: '#FF5252' }]}>未開啟位置權限，您將無法收到降雨預警通知。</Text>
-        </View>
-      )}
-      {locationStatus === 'foreground' && (
-        <View style={[styles.permissionWarning, { backgroundColor: '#FFEB3B20' }]}>
-          <Ionicons name="location" size={16} color="#FFEB3B" />
-          <Text style={[styles.permissionWarningText, { color: '#FFEB3B' }]}>目前僅限使用中存取位置。若要確保離開 App 後仍能收到準確通知，請將權限設定為「始終允許」。</Text>
-        </View>
-      )}
-
       <View style={isPad ? styles.headerPad : styles.header}>
-        <View style={styles.locationRow}>
+        <View style={[styles.locationRow, { flex: 1, marginRight: 10 }]}>
           {isUserLocation && <Ionicons name="navigate-sharp" size={isPad ? 18 : 14} color={mainColor === '#000000' ? '#FFF' : mainColor} style={{ marginRight: 6 }} />}
           <Text style={isPad ? styles.stationNamePad : styles.stationName}>{station}</Text>
           
           {locationStatus === 'denied' && (
-            <Ionicons name="alert-circle" size={14} color="#FF5252" style={{ marginLeft: 8 }} />
+            <View style={{ flexDirection: 'row', alignItems: 'center', marginLeft: 8, flex: 1 }}>
+              <Ionicons name="alert-circle" size={14} color="#FF5252" />
+              <Text style={{ color: '#FF5252', fontSize: 10, marginLeft: 4, flex: 1 }} numberOfLines={2}>未開啟位置權限，您將無法收到降雨預警通知。</Text>
+            </View>
           )}
           {locationStatus === 'foreground' && (
-            <Ionicons name="location" size={14} color="#FFEB3B" style={{ marginLeft: 8 }} />
+            <View style={{ flexDirection: 'row', alignItems: 'center', marginLeft: 8, flex: 1 }}>
+              <Ionicons name="location" size={14} color="#FFEB3B" />
+              <Text style={{ color: '#FFEB3B', fontSize: 10, marginLeft: 4, flex: 1 }} numberOfLines={2}>目前僅限使用中。請設為「始終允許」以接收準確通知。</Text>
+            </View>
           )}
         </View>
         {status.label !== '天氣良好' && status.label !== '預測：有雨' && (
