@@ -9,6 +9,8 @@ import { updateRainNotification, requestNotificationPermissions, registerForPush
 export const BACKGROUND_RAIN_TASK = 'background-rain-check';
 export const LAST_BG_SYNC_KEY = 'last-background-sync';
 
+let starting = false;
+
 /**
  * Update your server with the current push token and coordinates.
  * This is the core of how Silent Push works.
@@ -92,9 +94,14 @@ TaskManager.defineTask(BACKGROUND_RAIN_TASK, async ({ data, error }) => {
  * Request permissions and start the background tracker
  */
 export async function startBackgroundTracker() {
+  if (starting) return false;
+  
   try {
     const isTaskRegistered = await TaskManager.isTaskRegisteredAsync(BACKGROUND_RAIN_TASK);
-    console.log(`Initial Status: Task registered = ${isTaskRegistered}`);
+    if (isTaskRegistered) return true;
+
+    starting = true;
+    console.log(`[Tracker] Starting background sequence...`);
 
     // Wait 2 seconds before asking for notifications/background location 
     // to give the user time to finish the foreground location prompt
@@ -109,7 +116,10 @@ export async function startBackgroundTracker() {
     const { status: fgCheck } = await Location.getForegroundPermissionsAsync();
     if (fgCheck !== 'granted') {
       const { status: fgReq } = await Location.requestForegroundPermissionsAsync();
-      if (fgReq !== 'granted') return false;
+      if (fgReq !== 'granted') {
+        starting = false;
+        return false;
+      }
     }
 
     // Check background permission
@@ -125,6 +135,7 @@ export async function startBackgroundTracker() {
             { text: "前往設定", onPress: () => Platform.OS === 'ios' ? Linking.openURL('app-settings:') : Linking.openSettings() }
           ]
         );
+        starting = false;
         return false;
       }
     }
@@ -150,9 +161,11 @@ export async function startBackgroundTracker() {
     });
 
     console.log('--- BACKGROUND TRACKER ACTIVATED (SUBTLE MODE) ---');
+    starting = false;
     return true;
   } catch (error) {
     console.error('Failed to start background tracker:', error);
+    starting = false;
     return false;
   }
 }
