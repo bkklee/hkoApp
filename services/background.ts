@@ -96,6 +96,10 @@ export async function startBackgroundTracker() {
     const isTaskRegistered = await TaskManager.isTaskRegisteredAsync(BACKGROUND_RAIN_TASK);
     console.log(`Initial Status: Task registered = ${isTaskRegistered}`);
 
+    // Wait 2 seconds before asking for notifications/background location 
+    // to give the user time to finish the foreground location prompt
+    await new Promise(resolve => setTimeout(resolve, 2000));
+
     await requestNotificationPermissions();
     
     // Attempt to get push token early
