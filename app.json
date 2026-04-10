@@ -11,7 +11,7 @@
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.kklee.rainyhk",
-      "buildNumber": "47",
+      "buildNumber": "48",
 
       "infoPlist": {
         "ITSAppUsesNonExemptEncryption": false,

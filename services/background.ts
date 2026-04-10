@@ -8,6 +8,7 @@ import { updateRainNotification, requestNotificationPermissions, registerForPush
 
 export const BACKGROUND_RAIN_TASK = 'background-rain-check';
 export const LAST_BG_SYNC_KEY = 'last-background-sync';
+const LAST_PERMISSION_PROMPT_KEY = 'last-permission-prompt-time';
 
 let starting = false;
 
@@ -125,8 +126,12 @@ export async function startBackgroundTracker() {
     // Check background permission
     const { status: bgCheck } = await Location.getBackgroundPermissionsAsync();
     if (bgCheck !== 'granted') {
-      const { status: bgReq } = await Location.requestBackgroundPermissionsAsync();
-      if (bgReq !== 'granted') {
+      const now = Date.now();
+      const ONE_DAY = 24 * 60 * 60 * 1000;
+      const lastPrompt = await AsyncStorage.getItem(LAST_PERMISSION_PROMPT_KEY);
+
+      if (!lastPrompt || (now - parseInt(lastPrompt)) > ONE_DAY) {
+        await AsyncStorage.setItem(LAST_PERMISSION_PROMPT_KEY, now.toString());
         Alert.alert(
           "需要背景位置權限",
           "您未開啟「始終允許」位置權限。這將導致應用程式無法在背景為您監測降雨，您將無法收到降雨預警通知。",
@@ -135,9 +140,9 @@ export async function startBackgroundTracker() {
             { text: "前往設定", onPress: () => Platform.OS === 'ios' ? Linking.openURL('app-settings:') : Linking.openSettings() }
           ]
         );
-        starting = false;
-        return false;
       }
+      starting = false;
+      return false;
     }
 
     // 1. Register Background Fetch Task (Every 15 mins)
